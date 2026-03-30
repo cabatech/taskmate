@@ -15,7 +15,7 @@
   <img src="https://img.shields.io/badge/Home%20Assistant-2025.1+-blue" alt="HA Version">
 </p>
  
-> Originally created by [vinnybad/choremander](https://github.com/vinnybad/choremander). This fork adds 13 Lovelace cards, a bonus points system, streak tracking, reward approval flow, and much more.
+> Originally created by [vinnybad/choremander](https://github.com/vinnybad/choremander). This fork adds 14 Lovelace cards, a bonus points system, streak tracking, reward approval flow, a penalty system, and much more.
  
 ---
  
@@ -239,7 +239,9 @@ notify.mobile_app_your_phone
 ```
  
 Leave empty to use persistent notifications only.
- 
+
+> **Note:** The service must be in the `notify` domain (e.g. `notify.mobile_app_...`). Services from other domains are ignored with a warning in the HA logs.
+
 > **Tip:** Use `binary_sensor.taskmate_has_pending_approvals` in your own automations for more customised notification logic — see [Automations](#automations--examples).
  
 ---
@@ -317,12 +319,16 @@ entity: sensor.taskmate_overview
 child_id: a8c8376a            # required — see Finding IDs
 time_category: anytime        # morning | afternoon | evening | night | anytime | all
 due_days_mode: hide           # hide | dim | show — chores not scheduled today
+recurrence_done_mode: dim     # dim | hide | show — recurring chores waiting to reset
+elapsed_time_mode: dim        # dim | hide | show — time-of-day chores whose period has passed
 show_countdown: true          # show midnight reset countdown
 show_description: false       # show chore description below name
 default_sound: coin           # default completion sound
 undo_sound: undo              # sound when undoing
 header_color: "#9b59b6"
 ```
+
+**`elapsed_time_mode`** — controls what happens to morning/afternoon/evening/night chores once that time window has passed without completion. Set to `dim` (default) to grey them out and make them non-interactive, `hide` to remove them entirely, or `show` to leave them active. Chores set to `Anytime` are never affected. Chores that were completed still show with their green done style regardless.
  
 ---
  
@@ -668,7 +674,8 @@ Alternatively, IDs are visible in the URL when editing a child or reward in the 
 - If Streak Reset Mode is set to `reset`, missing a single day resets the streak to 0
  
 **Resources keep disappearing after restart**
-- Update to v1.1.6 or later — a fix in v1.1.6 resolves a deeper root cause where resources were being wiped on startup by Lovelace's own storage load
+- Restart Home Assistant — Lovelace resources are registered automatically on startup
+- If the problem persists after restarting, check the HA logs for errors from the `taskmate` integration
  
 ---
  
@@ -683,6 +690,7 @@ Alternatively, IDs are visible in the URL when editing a child or reward in the 
 - **Jackpot rewards** — Use these for big shared goals. A family holiday, a trip to a theme park, a new board game — something everyone works toward together
 - **Header colours** — Each card has its own default colour. Customise them in the visual editor to make the kids' dashboard bright and fun, and the parent dashboard more neutral
 - **Per-chore sounds** — Set `completion_sound: fanfare` on harder chores to make completing them feel more rewarding than easy ones
+- **Time-of-day cards** — Set `time_category: morning` on a card for the breakfast routine and `elapsed_time_mode: dim` so missed morning chores grey out automatically once it's afternoon — no clutter, no guilt trips
  
 ---
  
