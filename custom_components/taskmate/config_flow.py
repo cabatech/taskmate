@@ -93,33 +93,65 @@ class TaskMateOptionsFlow(config_entries.OptionsFlow):
         """Get the coordinator."""
         return self.hass.data[DOMAIN][self.config_entry.entry_id]
 
+    async def _async_get_user_language(self) -> str:
+        """Get the current user's language from their HA profile."""
+        try:
+            user_id = self.context.get("user_id") if self.context else None
+            if user_id:
+                # HA stores user preferences in the frontend storage
+                store = self.hass.data.get("frontend_storage")
+                if store:
+                    data = await store.async_load() if hasattr(store, 'async_load') else None
+                    if data and user_id in data:
+                        lang = data[user_id].get("language", {}).get("language")
+                        if lang:
+                            return lang
+                # Try the frontend user data directly
+                frontend_data = self.hass.data.get("frontend")
+                if frontend_data and hasattr(frontend_data, 'async_get_user_data'):
+                    user_data = await frontend_data.async_get_user_data(user_id)
+                    if user_data and user_data.get("language"):
+                        return user_data["language"]
+        except Exception:
+            pass
+        # Fall back to system language
+        return getattr(self.hass.config, 'language', None) or "en"
+
     async def _async_load_translations(self) -> None:
-        """Load our translations using HA's translation system (respects per-user language)."""
+        """Load translations for the current user's language."""
         if self._translations is not None:
             return
+        import json
+        from pathlib import Path
+
+        lang = await self._async_get_user_language()
+        _LOGGER.debug("TaskMate i18n: detected language=%s", lang)
+
+        # First try HA's translation system
         try:
             from homeassistant.helpers.translation import async_get_translations
             self._translations = await async_get_translations(
-                self.hass, self.hass.config.language or "en", "options", DOMAIN
+                self.hass, lang, "options", DOMAIN
             )
-            _LOGGER.debug("TaskMate i18n: loaded %d keys via HA translation system", len(self._translations))
+            if self._translations:
+                _LOGGER.debug("TaskMate i18n: loaded %d keys via HA for lang=%s", len(self._translations), lang)
+                return
         except Exception as e:
-            _LOGGER.debug("TaskMate i18n: HA translations unavailable (%s), loading manually", e)
-            # Fallback: load translation file directly
-            import json
-            from pathlib import Path
-            lang = getattr(self.hass.config, 'language', None) or "en"
-            translations_dir = Path(__file__).parent / "translations"
-            for candidate in [lang, lang.split("-")[0], "en"]:
-                path = translations_dir / f"{candidate}.json"
-                if path.exists():
-                    try:
-                        text = await self.hass.async_add_executor_job(path.read_text, "utf-8")
-                        self._translations = json.loads(text)
-                        return
-                    except Exception:
-                        continue
-            self._translations = {}
+            _LOGGER.debug("TaskMate i18n: HA translation system unavailable: %s", e)
+
+        # Fallback: load translation file directly
+        translations_dir = Path(__file__).parent / "translations"
+        for candidate in [lang, lang.split("-")[0], "en"]:
+            path = translations_dir / f"{candidate}.json"
+            if path.exists():
+                try:
+                    text = await self.hass.async_add_executor_job(path.read_text, "utf-8")
+                    self._translations = json.loads(text)
+                    _LOGGER.debug("TaskMate i18n: loaded file %s", candidate)
+                    return
+                except Exception:
+                    continue
+        self._translations = {}
 
     def _t(self, key: str, default: str = "") -> str:
         """Look up a translation key. Supports both HA flat keys and dotted nested keys."""
