@@ -301,14 +301,14 @@
     },
     "recurrence_day_option": {
       "options": {
-        "": "Hvilken som helst dag",
         "monday": "Mandag",
         "tuesday": "Tirsdag",
         "wednesday": "Onsdag",
         "thursday": "Torsdag",
         "friday": "Fredag",
         "saturday": "Lørdag",
-        "sunday": "Søndag"
+        "sunday": "Søndag",
+        "any_day": "Hvilken som helst dag"
       }
     },
     "first_occurrence_mode": {

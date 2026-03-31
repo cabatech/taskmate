@@ -301,14 +301,14 @@
     },
     "recurrence_day_option": {
       "options": {
-        "": "Qualquer dia",
         "monday": "Segunda-feira",
         "tuesday": "Terça-feira",
         "wednesday": "Quarta-feira",
         "thursday": "Quinta-feira",
         "friday": "Sexta-feira",
         "saturday": "Sábado",
-        "sunday": "Domingo"
+        "sunday": "Domingo",
+        "any_day": "Qualquer dia"
       }
     },
     "first_occurrence_mode": {

@@ -301,7 +301,7 @@
     },
     "recurrence_day_option": {
       "options": {
-        "": "Any day",
+        "any_day": "Any day",
         "monday": "Monday",
         "tuesday": "Tuesday",
         "wednesday": "Wednesday",

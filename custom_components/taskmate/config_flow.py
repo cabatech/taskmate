@@ -436,6 +436,8 @@ class TaskMateOptionsFlow(config_entries.OptionsFlow):
             recurrence_day = ""
             if recurrence in ("weekly", "every_2_weeks"):
                 recurrence_day = user_input.get("recurrence_day", "")
+                if recurrence_day == "any_day":
+                    recurrence_day = ""
             # Only store recurrence_start if every_2_days
             recurrence_start = ""
             if recurrence == "every_2_days":
@@ -471,9 +473,9 @@ class TaskMateOptionsFlow(config_entries.OptionsFlow):
                         mode=selector.SelectSelectorMode.DROPDOWN,
                     )
                 ),
-                vol.Optional("recurrence_day", default=""): selector.SelectSelector(
+                vol.Optional("recurrence_day", default="any_day"): selector.SelectSelector(
                     selector.SelectSelectorConfig(
-                        options=[""] + list(DAYS_OF_WEEK),
+                        options=["any_day"] + list(DAYS_OF_WEEK),
                         translation_key="recurrence_day_option",
                         mode=selector.SelectSelectorMode.DROPDOWN,
                     )
@@ -753,7 +755,8 @@ class TaskMateOptionsFlow(config_entries.OptionsFlow):
             chore.due_days = []
             recurrence = user_input.get("recurrence", "weekly")
             chore.recurrence = recurrence
-            chore.recurrence_day = user_input.get("recurrence_day", "") if recurrence in ("weekly", "every_2_weeks") else ""
+            raw_day = user_input.get("recurrence_day", "") if recurrence in ("weekly", "every_2_weeks") else ""
+            chore.recurrence_day = "" if raw_day == "any_day" else raw_day
             chore.recurrence_start = user_input.get("recurrence_start", "") if recurrence == "every_2_days" else ""
             chore.first_occurrence_mode = user_input.get("first_occurrence_mode", "available_immediately")
             await self.coordinator.async_update_chore(chore)
@@ -772,9 +775,9 @@ class TaskMateOptionsFlow(config_entries.OptionsFlow):
                         mode=selector.SelectSelectorMode.DROPDOWN,
                     )
                 ),
-                vol.Optional("recurrence_day", default=getattr(chore, 'recurrence_day', '')): selector.SelectSelector(
+                vol.Optional("recurrence_day", default=getattr(chore, 'recurrence_day', '') or "any_day"): selector.SelectSelector(
                     selector.SelectSelectorConfig(
-                        options=[""] + list(DAYS_OF_WEEK),
+                        options=["any_day"] + list(DAYS_OF_WEEK),
                         translation_key="recurrence_day_option",
                         mode=selector.SelectSelectorMode.DROPDOWN,
                     )

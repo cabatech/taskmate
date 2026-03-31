@@ -301,14 +301,14 @@
     },
     "recurrence_day_option": {
       "options": {
-        "": "Any day",
         "monday": "Monday",
         "tuesday": "Tuesday",
         "wednesday": "Wednesday",
         "thursday": "Thursday",
         "friday": "Friday",
         "saturday": "Saturday",
-        "sunday": "Sunday"
+        "sunday": "Sunday",
+        "any_day": "Any day"
       }
     },
     "first_occurrence_mode": {
