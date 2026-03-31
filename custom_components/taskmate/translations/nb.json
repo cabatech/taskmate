@@ -244,6 +244,86 @@
       "invalid_milestone_format": "Ugyldig milepælformat — bruk dager:poeng-par, f.eks. 3:5, 7:10, 14:20"
     }
   },
+  "selector": {
+    "child_action": {
+      "options": {
+        "save": "Lagre endringer",
+        "delete": "Slett barn"
+      }
+    },
+    "chore_action": {
+      "options": {
+        "save": "Lagre endringer",
+        "delete": "Slett denne oppgaven"
+      }
+    },
+    "reward_action": {
+      "options": {
+        "save": "Lagre endringer",
+        "delete": "Slett belønning"
+      }
+    },
+    "time_category": {
+      "options": {
+        "morning": "Morgen",
+        "afternoon": "Ettermiddag",
+        "evening": "Kveld",
+        "night": "Natt",
+        "anytime": "Når som helst"
+      }
+    },
+    "schedule_mode": {
+      "options": {
+        "specific_days": "Bestemte ukedager",
+        "recurring": "Gjentakende (hver N dag/uke/måned)"
+      }
+    },
+    "due_days_option": {
+      "options": {
+        "monday": "Mandag",
+        "tuesday": "Tirsdag",
+        "wednesday": "Onsdag",
+        "thursday": "Torsdag",
+        "friday": "Fredag",
+        "saturday": "Lørdag",
+        "sunday": "Søndag"
+      }
+    },
+    "recurrence": {
+      "options": {
+        "every_2_days": "Annenhver dag",
+        "weekly": "Ukentlig",
+        "every_2_weeks": "Annenhver uke",
+        "monthly": "Månedlig",
+        "every_3_months": "Hver 3. måned",
+        "every_6_months": "Hver 6. måned"
+      }
+    },
+    "recurrence_day_option": {
+      "options": {
+        "": "Hvilken som helst dag",
+        "monday": "Mandag",
+        "tuesday": "Tirsdag",
+        "wednesday": "Onsdag",
+        "thursday": "Torsdag",
+        "friday": "Fredag",
+        "saturday": "Lørdag",
+        "sunday": "Søndag"
+      }
+    },
+    "first_occurrence_mode": {
+      "options": {
+        "available_immediately": "Tilgjengelig umiddelbart",
+        "wait_for_first_occurrence": "Vent på første planlagte forekomst"
+      }
+    },
+    "streak_reset_mode": {
+      "options": {
+        "reset": "Nullstill — rekken går til 0 ved tapt dag",
+        "pause": "Pause — rekken bevares til neste fullføring"
+      }
+    }
+  },
   "services": {
     "complete_chore": {
       "name": "Fullfør oppgave",

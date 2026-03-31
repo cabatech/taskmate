@@ -146,6 +146,7 @@
   "leaderboard.card_name": "TaskMate Ledertavle",
   "leaderboard.card_description": "Konkurranseranking etter poeng, rekke eller ukentlig aktivitet",
   "leaderboard.default_title": "Ledertavle",
+  "leaderboard.tie": "LIKT",
   "leaderboard.sort_all_time_points": "Totale poeng",
   "leaderboard.sort_current_streak": "Nåværende rekke",
   "leaderboard.sort_this_week": "Denne uken",

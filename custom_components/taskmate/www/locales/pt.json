@@ -146,6 +146,7 @@
   "leaderboard.card_name": "Classificação TaskMate",
   "leaderboard.card_description": "Classificação competitiva multi-criança por pontos, sequência ou atividade semanal",
   "leaderboard.default_title": "Classificação",
+  "leaderboard.tie": "EMPATE",
   "leaderboard.sort_all_time_points": "Pontos de Sempre",
   "leaderboard.sort_current_streak": "Sequência Atual",
   "leaderboard.sort_this_week": "Esta Semana",

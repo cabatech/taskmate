@@ -342,7 +342,12 @@ class TaskMateApprovalsCard extends LitElement {
       `;
     }
 
-    const completions = entity.attributes.chore_completions || [];
+    // Support both the pending_approvals sensor (chore_completions)
+    // and the overview sensor (todays_completions filtered to unapproved)
+    let completions = entity.attributes.chore_completions;
+    if (!completions) {
+      completions = (entity.attributes.todays_completions || []).filter(c => !c.approved);
+    }
     const filteredCompletions = this._filterByChild(completions);
     const groupedByDay = this._groupByDay(filteredCompletions);
     const totalPending = filteredCompletions.length;

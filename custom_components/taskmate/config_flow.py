@@ -20,7 +20,6 @@ from .const import (
     DEFAULT_POINTS_NAME,
     DOMAIN,
     FIRST_OCCURRENCE_MODES,
-    RECURRENCE_LABELS,
     RECURRENCE_OPTIONS,
     REWARD_ICON_OPTIONS,
     SCHEDULE_MODES,
@@ -87,11 +86,44 @@ class TaskMateOptionsFlow(config_entries.OptionsFlow):
         self._selected_chore_id: str | None = None
         self._selected_reward_id: str | None = None
         self._chore_step1_data: dict | None = None  # Holds step 1 data while user completes step 2
+        self._translations: dict | None = None
 
     @property
     def coordinator(self):
         """Get the coordinator."""
         return self.hass.data[DOMAIN][self.config_entry.entry_id]
+
+    def _get_translation(self, key: str, default: str = "") -> str:
+        """Look up a translation string from our translations files.
+
+        Used for dynamic menu labels that HA can't translate via strings.json.
+        Falls back to English if the user's language file doesn't exist.
+        """
+        if self._translations is None:
+            import json
+            from pathlib import Path
+            lang = self.hass.config.language or "en"
+            translations_dir = Path(__file__).parent / "translations"
+            # Try exact language, then base language, then English
+            for candidate in [lang, lang.split("-")[0], "en"]:
+                path = translations_dir / f"{candidate}.json"
+                if path.exists():
+                    try:
+                        self._translations = json.loads(path.read_text("utf-8"))
+                        break
+                    except Exception:
+                        continue
+            if self._translations is None:
+                self._translations = {}
+        # Navigate dotted key like "options.step.manage_children.menu_options.add_child"
+        parts = key.split(".")
+        obj = self._translations
+        for part in parts:
+            if isinstance(obj, dict):
+                obj = obj.get(part)
+            else:
+                return default
+        return obj if isinstance(obj, str) else default
 
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
@@ -99,12 +131,12 @@ class TaskMateOptionsFlow(config_entries.OptionsFlow):
         """Manage the options - main menu."""
         return self.async_show_menu(
             step_id="init",
-            menu_options={
-                "manage_children": "Manage Children",
-                "manage_chores": "Manage Chores",
-                "manage_rewards": "Manage Rewards",
-                "settings": "Settings",
-            },
+            menu_options=[
+                "manage_children",
+                "manage_chores",
+                "manage_rewards",
+                "settings",
+            ],
         )
 
     # ==================== CHILDREN MANAGEMENT ====================
@@ -114,12 +146,13 @@ class TaskMateOptionsFlow(config_entries.OptionsFlow):
     ) -> FlowResult:
         """Manage children menu."""
         children = self.coordinator.storage.get_children()
-        menu_options = {"add_child": "Add New Child"}
+        _t = lambda key, default: self._get_translation(f"options.step.manage_children.menu_options.{key}", default)
+        menu_options = {"add_child": _t("add_child", "Add New Child")}
 
         for child in children:
-            menu_options[f"edit_child_{child.id}"] = f"Edit: {child.name}"
+            menu_options[f"edit_child_{child.id}"] = f"{child.name}"
 
-        menu_options["init"] = "Back to Main Menu"
+        menu_options["init"] = _t("init", "Back to Main Menu")
 
         return self.async_show_menu(
             step_id="manage_children",
@@ -199,10 +232,8 @@ class TaskMateOptionsFlow(config_entries.OptionsFlow):
                     ),
                     vol.Required("action", default="save"): selector.SelectSelector(
                         selector.SelectSelectorConfig(
-                            options=[
-                                selector.SelectOptionDict(value="save", label="Save Changes"),
-                                selector.SelectOptionDict(value="delete", label="Delete Child"),
-                            ],
+                            options=["save", "delete"],
+                            translation_key="child_action",
                             mode=selector.SelectSelectorMode.LIST,
                         )
                     ),
@@ -219,16 +250,17 @@ class TaskMateOptionsFlow(config_entries.OptionsFlow):
     ) -> FlowResult:
         """Manage chores menu."""
         chores = self.coordinator.storage.get_chores()
+        _t = lambda key, default: self._get_translation(f"options.step.manage_chores.menu_options.{key}", default)
         menu_options = {
-            "add_chore": "Add Single Chore",
-            "add_chores_bulk": "Add Multiple Chores",
+            "add_chore": _t("add_chore", "Add Single Chore"),
+            "add_chores_bulk": _t("add_chores_bulk", "Add Multiple Chores"),
         }
 
         for chore in chores:
             time_label = f" [{chore.time_category}]" if chore.time_category != "anytime" else ""
-            menu_options[f"edit_chore_{chore.id}"] = f"Edit: {chore.name} ({chore.points} pts){time_label}"
+            menu_options[f"edit_chore_{chore.id}"] = f"{chore.name} ({chore.points} pts){time_label}"
 
-        menu_options["init"] = "Back to Main Menu"
+        menu_options["init"] = _t("init", "Back to Main Menu")
 
         return self.async_show_menu(
             step_id="manage_chores",
@@ -259,15 +291,6 @@ class TaskMateOptionsFlow(config_entries.OptionsFlow):
             selector.SelectOptionDict(value=c.id, label=c.name)
             for c in children
         ]
-        time_options = [
-            selector.SelectOptionDict(value=tc, label=tc.title())
-            for tc in TIME_CATEGORIES
-        ]
-        schedule_mode_options = [
-            selector.SelectOptionDict(value="specific_days", label="Specific days of the week"),
-            selector.SelectOptionDict(value="recurring", label="Recurring (every N days/weeks/months)"),
-        ]
-
         schema_dict = {
             vol.Required("name"): str,
             vol.Optional("description", default=""): str,
@@ -276,13 +299,15 @@ class TaskMateOptionsFlow(config_entries.OptionsFlow):
             ),
             vol.Required("time_category", default="anytime"): selector.SelectSelector(
                 selector.SelectSelectorConfig(
-                    options=time_options,
+                    options=list(TIME_CATEGORIES),
+                    translation_key="time_category",
                     mode=selector.SelectSelectorMode.DROPDOWN,
                 )
             ),
             vol.Required("schedule_mode", default="specific_days"): selector.SelectSelector(
                 selector.SelectSelectorConfig(
-                    options=schedule_mode_options,
+                    options=["specific_days", "recurring"],
+                    translation_key="schedule_mode",
                     mode=selector.SelectSelectorMode.LIST,
                 )
             ),
@@ -337,16 +362,13 @@ class TaskMateOptionsFlow(config_entries.OptionsFlow):
             self._chore_step1_data = None
             return await self.async_step_manage_chores()
 
-        day_options = [
-            selector.SelectOptionDict(value=day, label=day.title())
-            for day in DAYS_OF_WEEK
-        ]
         return self.async_show_form(
             step_id="chore_schedule_specific",
             data_schema=vol.Schema({
                 vol.Optional("due_days", default=[]): selector.SelectSelector(
                     selector.SelectSelectorConfig(
-                        options=day_options,
+                        options=list(DAYS_OF_WEEK),
+                        translation_key="due_days_option",
                         mode=selector.SelectSelectorMode.DROPDOWN,
                         multiple=True,
                     )
@@ -390,31 +412,20 @@ class TaskMateOptionsFlow(config_entries.OptionsFlow):
             self._chore_step1_data = None
             return await self.async_step_manage_chores()
 
-        recurrence_options = [
-            selector.SelectOptionDict(value=k, label=v)
-            for k, v in RECURRENCE_LABELS.items()
-        ]
-        day_options = [
-            selector.SelectOptionDict(value=day, label=day.title())
-            for day in DAYS_OF_WEEK
-        ]
-        first_occurrence_options = [
-            selector.SelectOptionDict(value="available_immediately", label="Available immediately"),
-            selector.SelectOptionDict(value="wait_for_first_occurrence", label="Wait for first scheduled occurrence"),
-        ]
-
         return self.async_show_form(
             step_id="chore_schedule_recurring",
             data_schema=vol.Schema({
                 vol.Required("recurrence", default="weekly"): selector.SelectSelector(
                     selector.SelectSelectorConfig(
-                        options=recurrence_options,
+                        options=list(RECURRENCE_OPTIONS),
+                        translation_key="recurrence",
                         mode=selector.SelectSelectorMode.DROPDOWN,
                     )
                 ),
                 vol.Optional("recurrence_day", default=""): selector.SelectSelector(
                     selector.SelectSelectorConfig(
-                        options=[selector.SelectOptionDict(value="", label="Any day")] + day_options,
+                        options=[""] + list(DAYS_OF_WEEK),
+                        translation_key="recurrence_day_option",
                         mode=selector.SelectSelectorMode.DROPDOWN,
                     )
                 ),
@@ -423,7 +434,8 @@ class TaskMateOptionsFlow(config_entries.OptionsFlow):
                 ),
                 vol.Required("first_occurrence_mode", default="available_immediately"): selector.SelectSelector(
                     selector.SelectSelectorConfig(
-                        options=first_occurrence_options,
+                        options=["available_immediately", "wait_for_first_occurrence"],
+                        translation_key="first_occurrence_mode",
                         mode=selector.SelectSelectorMode.LIST,
                     )
                 ),
@@ -471,16 +483,6 @@ class TaskMateOptionsFlow(config_entries.OptionsFlow):
             for c in children
         ]
 
-        day_options = [
-            selector.SelectOptionDict(value=day, label=day.title())
-            for day in DAYS_OF_WEEK
-        ]
-
-        time_options = [
-            selector.SelectOptionDict(value=tc, label=tc.title())
-            for tc in TIME_CATEGORIES
-        ]
-
         schema_dict = {
             vol.Required("chore_names"): selector.TextSelector(
                 selector.TextSelectorConfig(
@@ -492,13 +494,15 @@ class TaskMateOptionsFlow(config_entries.OptionsFlow):
             ),
             vol.Required("time_category", default="anytime"): selector.SelectSelector(
                 selector.SelectSelectorConfig(
-                    options=time_options,
+                    options=list(TIME_CATEGORIES),
+                    translation_key="time_category",
                     mode=selector.SelectSelectorMode.DROPDOWN,
                 )
             ),
             vol.Optional("due_days", default=[]): selector.SelectSelector(
                 selector.SelectSelectorConfig(
-                    options=day_options,
+                    options=list(DAYS_OF_WEEK),
+                    translation_key="due_days_option",
                     mode=selector.SelectSelectorMode.DROPDOWN,
                     multiple=True,
                 )
@@ -570,18 +574,7 @@ class TaskMateOptionsFlow(config_entries.OptionsFlow):
             selector.SelectOptionDict(value=c.id, label=c.name)
             for c in children
         ]
-        time_options = [
-            selector.SelectOptionDict(value=tc, label=tc.title())
-            for tc in TIME_CATEGORIES
-        ]
-        schedule_mode_options = [
-            selector.SelectOptionDict(value="specific_days", label="Specific days of the week"),
-            selector.SelectOptionDict(value="recurring", label="Recurring (every N days/weeks/months)"),
-        ]
-        action_options = [
-            selector.SelectOptionDict(value="save", label="Save Changes"),
-            selector.SelectOptionDict(value="delete", label="Delete This Chore"),
-        ]
+        # Options are plain strings; labels come from translation_key in strings.json
 
         current_assigned = chore.assigned_to if isinstance(chore.assigned_to, list) else []
         current_schedule_mode = getattr(chore, 'schedule_mode', 'specific_days')
@@ -594,13 +587,15 @@ class TaskMateOptionsFlow(config_entries.OptionsFlow):
             ),
             vol.Required("time_category", default=chore.time_category): selector.SelectSelector(
                 selector.SelectSelectorConfig(
-                    options=time_options,
+                    options=list(TIME_CATEGORIES),
+                    translation_key="time_category",
                     mode=selector.SelectSelectorMode.DROPDOWN,
                 )
             ),
             vol.Required("schedule_mode", default=current_schedule_mode): selector.SelectSelector(
                 selector.SelectSelectorConfig(
-                    options=schedule_mode_options,
+                    options=["specific_days", "recurring"],
+                    translation_key="schedule_mode",
                     mode=selector.SelectSelectorMode.LIST,
                 )
             ),
@@ -619,7 +614,8 @@ class TaskMateOptionsFlow(config_entries.OptionsFlow):
             ),
             vol.Required("action", default="save"): selector.SelectSelector(
                 selector.SelectSelectorConfig(
-                    options=action_options,
+                    options=["save", "delete"],
+                    translation_key="chore_action",
                     mode=selector.SelectSelectorMode.LIST,
                 )
             ),
@@ -670,16 +666,13 @@ class TaskMateOptionsFlow(config_entries.OptionsFlow):
             self._chore_step1_data = None
             return await self.async_step_manage_chores()
 
-        day_options = [
-            selector.SelectOptionDict(value=day, label=day.title())
-            for day in DAYS_OF_WEEK
-        ]
         return self.async_show_form(
             step_id="edit_chore_schedule_specific",
             data_schema=vol.Schema({
                 vol.Optional("due_days", default=chore.due_days or []): selector.SelectSelector(
                     selector.SelectSelectorConfig(
-                        options=day_options,
+                        options=list(DAYS_OF_WEEK),
+                        translation_key="due_days_option",
                         mode=selector.SelectSelectorMode.DROPDOWN,
                         multiple=True,
                     )
@@ -718,18 +711,6 @@ class TaskMateOptionsFlow(config_entries.OptionsFlow):
             self._chore_step1_data = None
             return await self.async_step_manage_chores()
 
-        recurrence_options = [
-            selector.SelectOptionDict(value=k, label=v)
-            for k, v in RECURRENCE_LABELS.items()
-        ]
-        day_options = [
-            selector.SelectOptionDict(value=day, label=day.title())
-            for day in DAYS_OF_WEEK
-        ]
-        first_occurrence_options = [
-            selector.SelectOptionDict(value="available_immediately", label="Available immediately"),
-            selector.SelectOptionDict(value="wait_for_first_occurrence", label="Wait for first scheduled occurrence"),
-        ]
         current_recurrence = getattr(chore, 'recurrence', 'weekly')
 
         return self.async_show_form(
@@ -737,13 +718,15 @@ class TaskMateOptionsFlow(config_entries.OptionsFlow):
             data_schema=vol.Schema({
                 vol.Required("recurrence", default=current_recurrence): selector.SelectSelector(
                     selector.SelectSelectorConfig(
-                        options=recurrence_options,
+                        options=list(RECURRENCE_OPTIONS),
+                        translation_key="recurrence",
                         mode=selector.SelectSelectorMode.DROPDOWN,
                     )
                 ),
                 vol.Optional("recurrence_day", default=getattr(chore, 'recurrence_day', '')): selector.SelectSelector(
                     selector.SelectSelectorConfig(
-                        options=[selector.SelectOptionDict(value="", label="Any day")] + day_options,
+                        options=[""] + list(DAYS_OF_WEEK),
+                        translation_key="recurrence_day_option",
                         mode=selector.SelectSelectorMode.DROPDOWN,
                     )
                 ),
@@ -752,7 +735,8 @@ class TaskMateOptionsFlow(config_entries.OptionsFlow):
                 ),
                 vol.Required("first_occurrence_mode", default=getattr(chore, 'first_occurrence_mode', 'available_immediately')): selector.SelectSelector(
                     selector.SelectSelectorConfig(
-                        options=first_occurrence_options,
+                        options=["available_immediately", "wait_for_first_occurrence"],
+                        translation_key="first_occurrence_mode",
                         mode=selector.SelectSelectorMode.LIST,
                     )
                 ),
@@ -766,12 +750,13 @@ class TaskMateOptionsFlow(config_entries.OptionsFlow):
     ) -> FlowResult:
         """Manage rewards menu."""
         rewards = self.coordinator.storage.get_rewards()
-        menu_options = {"add_reward": "Add New Reward"}
+        _t = lambda key, default: self._get_translation(f"options.step.manage_rewards.menu_options.{key}", default)
+        menu_options = {"add_reward": _t("add_reward", "Add New Reward")}
 
         for reward in rewards:
-            menu_options[f"edit_reward_{reward.id}"] = f"Edit: {reward.name} ({reward.cost} pts)"
+            menu_options[f"edit_reward_{reward.id}"] = f"{reward.name} ({reward.cost} pts)"
 
-        menu_options["init"] = "Back to Main Menu"
+        menu_options["init"] = _t("init", "Back to Main Menu")
 
         return self.async_show_menu(
             step_id="manage_rewards",
@@ -887,10 +872,8 @@ class TaskMateOptionsFlow(config_entries.OptionsFlow):
             ),
             vol.Required("action", default="save"): selector.SelectSelector(
                 selector.SelectSelectorConfig(
-                    options=[
-                        selector.SelectOptionDict(value="save", label="Save Changes"),
-                        selector.SelectOptionDict(value="delete", label="Delete Reward"),
-                    ],
+                    options=["save", "delete"],
+                    translation_key="reward_action",
                     mode=selector.SelectSelectorMode.LIST,
                 )
             ),
@@ -1015,10 +998,8 @@ class TaskMateOptionsFlow(config_entries.OptionsFlow):
                         default=current_streak_mode,
                     ): selector.SelectSelector(
                         selector.SelectSelectorConfig(
-                            options=[
-                                selector.SelectOptionDict(value="reset", label="Reset — streak goes to 0 on missed day"),
-                                selector.SelectOptionDict(value="pause", label="Pause — streak preserved until next completion"),
-                            ],
+                            options=["reset", "pause"],
+                            translation_key="streak_reset_mode",
                             mode=selector.SelectSelectorMode.LIST,
                         )
                     ),

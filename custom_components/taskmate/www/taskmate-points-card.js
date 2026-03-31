@@ -645,7 +645,7 @@ class TaskMatePointsCard extends LitElement {
         <div class="card-header">
           <div class="header-content">
             <ha-icon class="header-icon" icon="${pointsIcon}"></ha-icon>
-            <span class="header-title">${this.config.title}</span>
+            <span class="header-title">${this.config.title || this._t('points_card.default_title')}</span>
           </div>
         </div>
 

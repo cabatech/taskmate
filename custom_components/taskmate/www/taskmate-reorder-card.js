@@ -597,7 +597,7 @@ class TaskMateReorderCard extends LitElement {
           <div class="card-header">
             <div class="header-left">
               <ha-icon class="header-icon" icon="mdi:sort"></ha-icon>
-              <span class="card-title">${this.config.title}</span>
+              <span class="card-title">${this.config.title || this._t('reorder.default_title')}</span>
               <span class="child-name">${child.name}</span>
             </div>
           </div>
@@ -619,7 +619,7 @@ class TaskMateReorderCard extends LitElement {
         <div class="card-header">
           <div class="header-left">
             <ha-icon class="header-icon" icon="mdi:sort"></ha-icon>
-            <span class="card-title">${this.config.title}</span>
+            <span class="card-title">${this.config.title || this._t('reorder.default_title')}</span>
             <span class="child-name">${child.name}</span>
           </div>
           <button

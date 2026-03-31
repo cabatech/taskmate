@@ -153,8 +153,7 @@ class TaskMateLeaderboardCard extends LitElement {
         position: relative;
       }
 
-      .tie-line::after {
-        content: 'TIE';
+      .tie-line .tie-label {
         position: absolute; top: 50%; left: 50%;
         transform: translate(-50%, -50%);
         background: var(--secondary-background-color, #f5f5f5);
@@ -282,7 +281,7 @@ class TaskMateLeaderboardCard extends LitElement {
             const prevChild = idx > 0 ? sorted[idx - 1] : null;
             const isTie = prevChild && this._getScore(child, prevChild, sortBy, weeklyPoints);
             return html`
-              ${isTie ? html`<div class="tie-line"></div>` : ''}
+              ${isTie ? html`<div class="tie-line"><span class="tie-label">${this._t('leaderboard.tie')}</span></div>` : ''}
               ${this._renderRankRow(child, idx, sortBy, weeklyPoints, pointsIcon, pointsName)}
             `;
           })}

@@ -244,6 +244,86 @@
       "invalid_milestone_format": "Ugyldig milepælformat — bruk dagar:poeng-par, t.d. 3:5, 7:10, 14:20"
     }
   },
+  "selector": {
+    "child_action": {
+      "options": {
+        "save": "Lagre endringar",
+        "delete": "Slett born"
+      }
+    },
+    "chore_action": {
+      "options": {
+        "save": "Lagre endringar",
+        "delete": "Slett denne oppgåva"
+      }
+    },
+    "reward_action": {
+      "options": {
+        "save": "Lagre endringar",
+        "delete": "Slett løning"
+      }
+    },
+    "time_category": {
+      "options": {
+        "morning": "Morgon",
+        "afternoon": "Ettermiddag",
+        "evening": "Kveld",
+        "night": "Natt",
+        "anytime": "Når som helst"
+      }
+    },
+    "schedule_mode": {
+      "options": {
+        "specific_days": "Bestemte vekedagar",
+        "recurring": "Gjentakande (kvar N dag/veke/månad)"
+      }
+    },
+    "due_days_option": {
+      "options": {
+        "monday": "Måndag",
+        "tuesday": "Tysdag",
+        "wednesday": "Onsdag",
+        "thursday": "Torsdag",
+        "friday": "Fredag",
+        "saturday": "Laurdag",
+        "sunday": "Sundag"
+      }
+    },
+    "recurrence": {
+      "options": {
+        "every_2_days": "Annakvar dag",
+        "weekly": "Vekeleg",
+        "every_2_weeks": "Annakvar veke",
+        "monthly": "Månadleg",
+        "every_3_months": "Kvar 3. månad",
+        "every_6_months": "Kvar 6. månad"
+      }
+    },
+    "recurrence_day_option": {
+      "options": {
+        "": "Kva dag som helst",
+        "monday": "Måndag",
+        "tuesday": "Tysdag",
+        "wednesday": "Onsdag",
+        "thursday": "Torsdag",
+        "friday": "Fredag",
+        "saturday": "Laurdag",
+        "sunday": "Sundag"
+      }
+    },
+    "first_occurrence_mode": {
+      "options": {
+        "available_immediately": "Tilgjengeleg med ein gong",
+        "wait_for_first_occurrence": "Vent på fyrste planlagde førekomst"
+      }
+    },
+    "streak_reset_mode": {
+      "options": {
+        "reset": "Nullstill — rekka går til 0 ved tapt dag",
+        "pause": "Pause — rekka vert bevart til neste fullføring"
+      }
+    }
+  },
   "services": {
     "complete_chore": {
       "name": "Fullfør oppgåve",

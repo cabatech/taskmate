@@ -396,7 +396,7 @@ class TaskMateParentDashboardCard extends LitElement {
         <div class="card-header">
           <div class="header-content">
             <ha-icon class="header-icon" icon="mdi:shield-account"></ha-icon>
-            <span class="header-title">${this.config.title}</span>
+            <span class="header-title">${this.config.title || this._t('dashboard.default_title')}</span>
           </div>
           ${totalPending > 0 ? html`
             <div class="pending-badge">
