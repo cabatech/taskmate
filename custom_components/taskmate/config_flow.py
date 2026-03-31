@@ -93,29 +93,44 @@ class TaskMateOptionsFlow(config_entries.OptionsFlow):
         """Get the coordinator."""
         return self.hass.data[DOMAIN][self.config_entry.entry_id]
 
-    def _get_translation(self, key: str, default: str = "") -> str:
-        """Look up a translation string from our translations files.
-
-        Used for dynamic menu labels that HA can't translate via strings.json.
-        Falls back to English if the user's language file doesn't exist.
-        """
-        if self._translations is None:
+    async def _async_load_translations(self) -> None:
+        """Load our translations using HA's translation system (respects per-user language)."""
+        if self._translations is not None:
+            return
+        try:
+            from homeassistant.helpers.translation import async_get_translations
+            self._translations = await async_get_translations(
+                self.hass, self.hass.config.language or "en", "options", DOMAIN
+            )
+            _LOGGER.debug("TaskMate i18n: loaded %d keys via HA translation system", len(self._translations))
+        except Exception as e:
+            _LOGGER.debug("TaskMate i18n: HA translations unavailable (%s), loading manually", e)
+            # Fallback: load translation file directly
             import json
             from pathlib import Path
-            lang = self.hass.config.language or "en"
+            lang = getattr(self.hass.config, 'language', None) or "en"
             translations_dir = Path(__file__).parent / "translations"
-            # Try exact language, then base language, then English
             for candidate in [lang, lang.split("-")[0], "en"]:
                 path = translations_dir / f"{candidate}.json"
                 if path.exists():
                     try:
-                        self._translations = json.loads(path.read_text("utf-8"))
-                        break
+                        text = await self.hass.async_add_executor_job(path.read_text, "utf-8")
+                        self._translations = json.loads(text)
+                        return
                     except Exception:
                         continue
-            if self._translations is None:
-                self._translations = {}
-        # Navigate dotted key like "options.step.manage_children.menu_options.add_child"
+            self._translations = {}
+
+    def _t(self, key: str, default: str = "") -> str:
+        """Look up a translation key. Supports both HA flat keys and dotted nested keys."""
+        if not self._translations:
+            return default
+        # HA's async_get_translations returns flat keys like:
+        # "component.taskmate.options.step.manage_children.menu_options.add_child"
+        ha_key = f"component.{DOMAIN}.{key}"
+        if ha_key in self._translations:
+            return self._translations[ha_key]
+        # Fallback: navigate dotted key through nested dict (manual file load)
         parts = key.split(".")
         obj = self._translations
         for part in parts:
@@ -145,14 +160,15 @@ class TaskMateOptionsFlow(config_entries.OptionsFlow):
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
         """Manage children menu."""
+        await self._async_load_translations()
         children = self.coordinator.storage.get_children()
-        _t = lambda key, default: self._get_translation(f"options.step.manage_children.menu_options.{key}", default)
-        menu_options = {"add_child": _t("add_child", "Add New Child")}
+        _m = lambda key, default: self._t(f"options.step.manage_children.menu_options.{key}", default)
+        menu_options = {"add_child": _m("add_child", "Add New Child")}
 
         for child in children:
             menu_options[f"edit_child_{child.id}"] = f"{child.name}"
 
-        menu_options["init"] = _t("init", "Back to Main Menu")
+        menu_options["init"] = _m("init", "Back to Main Menu")
 
         return self.async_show_menu(
             step_id="manage_children",
@@ -249,18 +265,19 @@ class TaskMateOptionsFlow(config_entries.OptionsFlow):
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
         """Manage chores menu."""
+        await self._async_load_translations()
         chores = self.coordinator.storage.get_chores()
-        _t = lambda key, default: self._get_translation(f"options.step.manage_chores.menu_options.{key}", default)
+        _m = lambda key, default: self._t(f"options.step.manage_chores.menu_options.{key}", default)
         menu_options = {
-            "add_chore": _t("add_chore", "Add Single Chore"),
-            "add_chores_bulk": _t("add_chores_bulk", "Add Multiple Chores"),
+            "add_chore": _m("add_chore", "Add Single Chore"),
+            "add_chores_bulk": _m("add_chores_bulk", "Add Multiple Chores"),
         }
 
         for chore in chores:
             time_label = f" [{chore.time_category}]" if chore.time_category != "anytime" else ""
             menu_options[f"edit_chore_{chore.id}"] = f"{chore.name} ({chore.points} pts){time_label}"
 
-        menu_options["init"] = _t("init", "Back to Main Menu")
+        menu_options["init"] = _m("init", "Back to Main Menu")
 
         return self.async_show_menu(
             step_id="manage_chores",
@@ -749,14 +766,15 @@ class TaskMateOptionsFlow(config_entries.OptionsFlow):
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
         """Manage rewards menu."""
+        await self._async_load_translations()
         rewards = self.coordinator.storage.get_rewards()
-        _t = lambda key, default: self._get_translation(f"options.step.manage_rewards.menu_options.{key}", default)
-        menu_options = {"add_reward": _t("add_reward", "Add New Reward")}
+        _m = lambda key, default: self._t(f"options.step.manage_rewards.menu_options.{key}", default)
+        menu_options = {"add_reward": _m("add_reward", "Add New Reward")}
 
         for reward in rewards:
             menu_options[f"edit_reward_{reward.id}"] = f"{reward.name} ({reward.cost} pts)"
 
-        menu_options["init"] = _t("init", "Back to Main Menu")
+        menu_options["init"] = _m("init", "Back to Main Menu")
 
         return self.async_show_menu(
             step_id="manage_rewards",
