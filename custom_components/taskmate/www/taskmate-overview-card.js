@@ -22,6 +22,11 @@ class TaskMateOverviewCard extends LitElement {
     };
   }
 
+  _t(key, params) {
+    const fn = window.__taskmate_localize;
+    return fn ? fn(this.hass, key, params) : key;
+  }
+
   static get styles() {
     return css`
       :host {
@@ -289,10 +294,10 @@ class TaskMateOverviewCard extends LitElement {
 
     const entity = this.hass.states[this.config.entity];
     if (!entity) {
-      return html`<ha-card><div class="error-state"><ha-icon icon="mdi:alert-circle"></ha-icon><div>Entity not found: ${this.config.entity}</div></div></ha-card>`;
+      return html`<ha-card><div class="error-state"><ha-icon icon="mdi:alert-circle"></ha-icon><div>${this._t('common.entity_not_found', { entity: this.config.entity })}</div></div></ha-card>`;
     }
     if (entity.state === "unavailable" || entity.state === "unknown") {
-      return html`<ha-card><div class="error-state"><ha-icon icon="mdi:alert-circle"></ha-icon><div>TaskMate is unavailable</div></div></ha-card>`;
+      return html`<ha-card><div class="error-state"><ha-icon icon="mdi:alert-circle"></ha-icon><div>${this._t('common.unavailable')}</div></div></ha-card>`;
     }
 
     const children = entity.attributes.children || [];
@@ -318,7 +323,7 @@ class TaskMateOverviewCard extends LitElement {
     const totalCompletedToday = completions.filter(c => c.approved).length;
 
     if (children.length === 0) {
-      return html`<ha-card><div class="empty-state"><ha-icon icon="mdi:account-group"></ha-icon><div>No children found</div></div></ha-card>`;
+      return html`<ha-card><div class="empty-state"><ha-icon icon="mdi:account-group"></ha-icon><div>${this._t('common.no_children')}</div></div></ha-card>`;
     }
 
     return html`
@@ -332,7 +337,7 @@ class TaskMateOverviewCard extends LitElement {
           ${pendingApprovals > 0 ? html`
             <div class="pending-badge">
               <ha-icon icon="mdi:clock-alert"></ha-icon>
-              ${pendingApprovals} pending
+              ${this._t('overview.pending_count', { count: pendingApprovals })}
             </div>
           ` : ''}
         </div>
@@ -344,23 +349,23 @@ class TaskMateOverviewCard extends LitElement {
         <div class="summary-footer">
           <div class="summary-stat">
             <span class="summary-stat-value">${children.length}</span>
-            <span class="summary-stat-label">Children</span>
+            <span class="summary-stat-label">${this._t('overview.footer_children')}</span>
           </div>
           <div class="summary-divider"></div>
           <div class="summary-stat">
             <span class="summary-stat-value">${totalCompletedToday}</span>
-            <span class="summary-stat-label">Done Today</span>
+            <span class="summary-stat-label">${this._t('overview.footer_done_today')}</span>
           </div>
           <div class="summary-divider"></div>
           <div class="summary-stat">
             <span class="summary-stat-value">${totalPoints}</span>
-            <span class="summary-stat-label">Total ${pointsName}</span>
+            <span class="summary-stat-label">${this._t('overview.footer_total_points', { pointsName })}</span>
           </div>
           ${pendingApprovals > 0 ? html`
             <div class="summary-divider"></div>
             <div class="summary-stat">
               <span class="summary-stat-value" style="color: var(--ov-red);">${pendingApprovals}</span>
-              <span class="summary-stat-label">Pending</span>
+              <span class="summary-stat-label">${this._t('common.pending')}</span>
             </div>
           ` : ''}
         </div>
@@ -450,7 +455,7 @@ class TaskMateOverviewCard extends LitElement {
               </span>
             </div>
           ` : html`
-            <div style="font-size:0.8rem;color:var(--secondary-text-color);opacity:0.7;">No chores today</div>
+            <div style="font-size:0.8rem;color:var(--secondary-text-color);opacity:0.7;">${this._t('common.no_chores_today')}</div>
           `}
         </div>
       </div>
@@ -477,31 +482,31 @@ class TaskMateOverviewCardEditor extends LitElement {
     if (!this.hass || !this.config) return html``;
     return html`
       <ha-textfield
-        label="Overview Entity"
+        label="${this._t('overview.editor.entity_label')}"
         .value="${this.config.entity || ""}"
         @change="${e => this._updateConfig('entity', e.target.value)}"
-        helper="The TaskMate overview sensor entity"
+        helper="${this._t('overview.editor.entity_helper')}"
         helperPersistent
         placeholder="sensor.taskmate_overview"
       ></ha-textfield>
       <ha-textfield
-        label="Title"
+        label="${this._t('overview.editor.title_label')}"
         .value="${this.config.title || ""}"
         @change="${e => this._updateConfig('title', e.target.value)}"
         placeholder="TaskMate"
       ></ha-textfield>
       <ha-textfield
-        label="Approvals Entity (optional)"
+        label="${this._t('overview.editor.approvals_entity_label')}"
         .value="${this.config.approvals_entity || ""}"
         @change="${e => this._updateConfig('approvals_entity', e.target.value)}"
-        helper="sensor.pending_approvals — for accurate pending count"
+        helper="${this._t('overview.editor.approvals_entity_helper')}"
         helperPersistent
         placeholder="sensor.pending_approvals"
       ></ha-textfield>
-        <span class="field-helper">Card header background colour</span>
+        <span class="field-helper">${this._t('overview.editor.header_colour_helper')}</span>
       </div>
       <div class="field-row">
-        <label class="field-label">Header Colour</label>
+        <label class="field-label">${this._t('overview.editor.header_colour_label')}</label>
         <div style="display:flex;align-items:center;gap:10px;">
           <input
             type="color"
@@ -513,11 +518,16 @@ class TaskMateOverviewCardEditor extends LitElement {
           <button
             style="font-size:11px;color:var(--secondary-text-color);background:none;border:1px solid var(--divider-color,#e0e0e0);border-radius:4px;padding:3px 8px;cursor:pointer;"
             @click=${() => this._updateConfig('header_color', '#8e44ad')}
-          >Reset</button>
+          >${this._t('common.reset')}</button>
         </div>
-        <span class="field-helper">Card header background colour</span>
+        <span class="field-helper">${this._t('overview.editor.header_colour_helper')}</span>
       </div>
     `;
+  }
+
+  _t(key, params) {
+    const fn = window.__taskmate_localize;
+    return fn ? fn(this.hass, key, params) : key;
   }
 
   _updateConfig(key, value) {

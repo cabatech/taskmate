@@ -22,6 +22,11 @@ class TaskMateWeeklyCard extends LitElement {
     };
   }
 
+  _t(key, params) {
+    const fn = window.__taskmate_localize;
+    return fn ? fn(this.hass, key, params) : key;
+  }
+
   static get styles() {
     return css`
       :host {
@@ -247,9 +252,9 @@ class TaskMateWeeklyCard extends LitElement {
   }
 
   setConfig(config) {
-    if (!config.entity) throw new Error("Please define an entity");
+    if (!config.entity) throw new Error(this._t('weekly.error.entity_required'));
     this.config = {
-      title: "This Week",
+      title: null,
       child_id: null,
             header_color: '#27ae60',
     ...config,
@@ -267,10 +272,10 @@ class TaskMateWeeklyCard extends LitElement {
 
     const entity = this.hass.states[this.config.entity];
     if (!entity) {
-      return html`<ha-card><div class="error-state"><ha-icon icon="mdi:alert-circle"></ha-icon><div>Entity not found: ${this.config.entity}</div></div></ha-card>`;
+      return html`<ha-card><div class="error-state"><ha-icon icon="mdi:alert-circle"></ha-icon><div>${this._t('common.entity_not_found', { entity: this.config.entity })}</div></div></ha-card>`;
     }
     if (entity.state === "unavailable" || entity.state === "unknown") {
-      return html`<ha-card><div class="error-state"><ha-icon icon="mdi:alert-circle"></ha-icon><div>TaskMate is unavailable</div></div></ha-card>`;
+      return html`<ha-card><div class="error-state"><ha-icon icon="mdi:alert-circle"></ha-icon><div>${this._t('common.unavailable')}</div></div></ha-card>`;
     }
 
     const tz = this.hass?.config?.time_zone || Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -345,7 +350,7 @@ class TaskMateWeeklyCard extends LitElement {
         <div class="card-header">
           <div class="header-content">
             <ha-icon class="header-icon" icon="mdi:calendar-week"></ha-icon>
-            <span class="header-title">${this.config.title}</span>
+            <span class="header-title">${this.config.title || this._t('weekly.default_title')}</span>
           </div>
           <span class="week-label">${weekLabel}</span>
         </div>
@@ -355,7 +360,7 @@ class TaskMateWeeklyCard extends LitElement {
           <div class="stats-row">
             <div class="stat-card">
               <span class="stat-value green">${weekChores}</span>
-              <span class="stat-label">Chores</span>
+              <span class="stat-label">${this._t('weekly.stat_chores')}</span>
             </div>
             <div class="stat-card">
               <span class="stat-value orange">${weekPoints}</span>
@@ -363,13 +368,13 @@ class TaskMateWeeklyCard extends LitElement {
             </div>
             <div class="stat-card">
               <span class="stat-value purple">${daysActive}/7</span>
-              <span class="stat-label">Days Active</span>
+              <span class="stat-label">${this._t('weekly.stat_days_active')}</span>
             </div>
           </div>
 
           <!-- Daily bar chart -->
           <div class="chart-section">
-            <div class="section-label">Chores Per Day</div>
+            <div class="section-label">${this._t('weekly.section_chores_per_day')}</div>
             <div class="bar-chart">
               ${weekDays.map(day => {
                 const count = (approvedCompletionsByDay[day.key] || []).length;
@@ -391,7 +396,7 @@ class TaskMateWeeklyCard extends LitElement {
           <!-- Per-child breakdown -->
           ${children.length > 0 ? html`
             <div class="children-section">
-              <div class="section-label">Children This Week</div>
+              <div class="section-label">${this._t('weekly.section_children_this_week')}</div>
               ${children.map(child => {
                 // Only count approved completions for all per-child stats
                 const childApprovedCompletions = approvedWeekCompletions.filter(c => c.child_id === child.id);
@@ -413,12 +418,12 @@ class TaskMateWeeklyCard extends LitElement {
                     <div class="child-info">
                       <div class="child-name">${child.name}</div>
                       <div class="child-week-stats">
-                        <span><ha-icon icon="mdi:checkbox-marked-circle" style="color:var(--wk-green)"></ha-icon>${childChoreCount} chores</span>
+                        <span><ha-icon icon="mdi:checkbox-marked-circle" style="color:var(--wk-green)"></ha-icon>${this._t('weekly.child_chores', { count: childChoreCount })}</span>
                         <span><ha-icon icon="${pointsIcon}" style="color:var(--wk-gold)"></ha-icon>${childPoints} ${pointsName}</span>
-                        <span><ha-icon icon="mdi:calendar-check" style="color:var(--wk-blue)"></ha-icon>${childDaysActive}/7 days</span>
+                        <span><ha-icon icon="mdi:calendar-check" style="color:var(--wk-blue)"></ha-icon>${this._t('weekly.child_days', { count: childDaysActive })}</span>
                       </div>
                     </div>
-                    <div class="week-progress-bar" title="${childDaysActive} of 7 days active">
+                    <div class="week-progress-bar" title="${this._t('weekly.child_days_active_title', { count: childDaysActive })}">
                       <div class="week-progress-fill" style="width: ${pct}%"></div>
                     </div>
                   </div>
@@ -440,7 +445,11 @@ class TaskMateWeeklyCard extends LitElement {
     monday.setDate(today.getDate() + mondayOffset);
 
     const days = [];
-    const shortNames = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+    const shortNames = [
+      this._t('weekly.day_mon'), this._t('weekly.day_tue'), this._t('weekly.day_wed'),
+      this._t('weekly.day_thu'), this._t('weekly.day_fri'), this._t('weekly.day_sat'),
+      this._t('weekly.day_sun'),
+    ];
     for (let i = 0; i < 7; i++) {
       const d = new Date(monday);
       d.setDate(monday.getDate() + i);
@@ -465,6 +474,11 @@ class TaskMateWeeklyCard extends LitElement {
 class TaskMateWeeklyCardEditor extends LitElement {
   static get properties() {
     return { hass: { type: Object }, config: { type: Object } };
+  }
+
+  _t(key, params) {
+    const fn = window.__taskmate_localize;
+    return fn ? fn(this.hass, key, params) : key;
   }
 
   static get styles() {
@@ -498,31 +512,31 @@ class TaskMateWeeklyCardEditor extends LitElement {
 
     return html`
       <ha-textfield
-        label="Overview Entity"
+        label="${this._t('common.editor.overview_entity')}"
         .value="${this.config.entity || ""}"
         @change="${e => this._updateConfig('entity', e.target.value)}"
-        helper="The TaskMate overview sensor entity"
+        helper="${this._t('common.editor.overview_entity_helper')}"
         helperPersistent
         placeholder="sensor.taskmate_overview"
       ></ha-textfield>
       <ha-textfield
-        label="Title"
+        label="${this._t('weekly.editor.title')}"
         .value="${this.config.title || ""}"
         @change="${e => this._updateConfig('title', e.target.value)}"
         placeholder="This Week"
       ></ha-textfield>
       <div class="form-row">
-        <label class="form-label">Filter by Child (optional)</label>
+        <label class="form-label">${this._t('common.editor.filter_by_child')}</label>
         <select class="form-select" @change="${e => this._updateConfig('child_id', e.target.value || null)}">
-          <option value="" ?selected="${!this.config.child_id}">All Children</option>
+          <option value="" ?selected="${!this.config.child_id}">${this._t('common.editor.filter_by_child_all')}</option>
           ${children.map(c => html`<option value="${c.id}" ?selected="${this.config.child_id === c.id}">${c.name}</option>`)}
         </select>
-        <span class="form-helper">Show weekly summary for a specific child only</span>
+        <span class="form-helper">${this._t('weekly.editor.child_helper')}</span>
       </div>
-        <span class="field-helper">Card header background colour</span>
+        <span class="field-helper">${this._t('common.editor.header_colour_helper')}</span>
       </div>
       <div class="field-row">
-        <label class="field-label">Header Colour</label>
+        <label class="field-label">${this._t('common.editor.header_colour')}</label>
         <div style="display:flex;align-items:center;gap:10px;">
           <input
             type="color"
@@ -534,9 +548,9 @@ class TaskMateWeeklyCardEditor extends LitElement {
           <button
             style="font-size:11px;color:var(--secondary-text-color);background:none;border:1px solid var(--divider-color,#e0e0e0);border-radius:4px;padding:3px 8px;cursor:pointer;"
             @click=${() => this._updateConfig('header_color', '#27ae60')}
-          >Reset</button>
+          >${this._t('common.reset')}</button>
         </div>
-        <span class="field-helper">Card header background colour</span>
+        <span class="field-helper">${this._t('common.editor.header_colour_helper')}</span>
       </div>
     `;
   }

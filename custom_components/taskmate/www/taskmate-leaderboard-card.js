@@ -20,6 +20,11 @@ class TaskMateLeaderboardCard extends LitElement {
     return { hass: { type: Object }, config: { type: Object } };
   }
 
+  _t(key, params) {
+    const fn = window.__taskmate_localize;
+    return fn ? fn(this.hass, key, params) : key;
+  }
+
   static get styles() {
     return css`
       :host { display: block; }
@@ -214,7 +219,7 @@ class TaskMateLeaderboardCard extends LitElement {
   setConfig(config) {
     if (!config.entity) throw new Error("Please define an entity");
     this.config = {
-      title: "Leaderboard",
+      title: "",
       sort_by: "points",      // "points" | "streak" | "weekly"
       show_streak: true,
       show_weekly: true,
@@ -233,14 +238,14 @@ class TaskMateLeaderboardCard extends LitElement {
     if (!this.hass || !this.config) return html``;
 
     const entity = this.hass.states[this.config.entity];
-    if (!entity) return html`<ha-card><div class="error-state"><ha-icon icon="mdi:alert-circle"></ha-icon><div>Entity not found: ${this.config.entity}</div></div></ha-card>`;
-    if (entity.state === "unavailable" || entity.state === "unknown") return html`<ha-card><div class="error-state"><ha-icon icon="mdi:alert-circle"></ha-icon><div>TaskMate unavailable</div></div></ha-card>`;
+    if (!entity) return html`<ha-card><div class="error-state"><ha-icon icon="mdi:alert-circle"></ha-icon><div>${this._t('common.entity_not_found', { entity: this.config.entity })}</div></div></ha-card>`;
+    if (entity.state === "unavailable" || entity.state === "unknown") return html`<ha-card><div class="error-state"><ha-icon icon="mdi:alert-circle"></ha-icon><div>${this._t('common.unavailable')}</div></div></ha-card>`;
 
     const children = [...(entity.attributes.children || [])];
     const pointsIcon = entity.attributes.points_icon || "mdi:star";
-    const pointsName = entity.attributes.points_name || "Points";
+    const pointsName = entity.attributes.points_name || this._t('common.points');
 
-    if (children.length === 0) return html`<ha-card><div class="empty-state"><ha-icon icon="mdi:account-group"></ha-icon><div>No children found</div></div></ha-card>`;
+    if (children.length === 0) return html`<ha-card><div class="empty-state"><ha-icon icon="mdi:account-group"></ha-icon><div>${this._t('common.no_children')}</div></div></ha-card>`;
 
     // Build weekly points from recent_completions
     const tz = this.hass?.config?.time_zone || Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -254,7 +259,7 @@ class TaskMateLeaderboardCard extends LitElement {
       return (b.points || 0) - (a.points || 0);
     });
 
-    const sortLabels = { points: "All-time Points", streak: "Current Streak", weekly: "This Week" };
+    const sortLabels = { points: this._t('leaderboard.sort_all_time_points'), streak: this._t('leaderboard.sort_current_streak'), weekly: this._t('leaderboard.sort_this_week') };
     const periodLabel = sortLabels[sortBy] || sortLabels.points;
 
     // Solo mode
@@ -268,7 +273,7 @@ class TaskMateLeaderboardCard extends LitElement {
         <div class="card-header">
           <div class="header-content">
             <ha-icon class="header-icon" icon="mdi:trophy"></ha-icon>
-            <span class="header-title">${this.config.title}</span>
+            <span class="header-title">${this.config.title || this._t('leaderboard.default_title')}</span>
           </div>
           <span class="period-badge">${periodLabel}</span>
         </div>
@@ -283,7 +288,7 @@ class TaskMateLeaderboardCard extends LitElement {
           })}
         </div>
         <div class="card-footer">
-          Ranked by ${periodLabel.toLowerCase()}
+          ${this._t('leaderboard.ranked_by', { period: periodLabel.toLowerCase() })}
         </div>
       </ha-card>
     `;
@@ -304,10 +309,10 @@ class TaskMateLeaderboardCard extends LitElement {
     let scoreValue, scoreLabel;
     if (sortBy === "streak") {
       scoreValue = child.current_streak || 0;
-      scoreLabel = "day streak";
+      scoreLabel = this._t('common.day_streak');
     } else if (sortBy === "weekly") {
       scoreValue = weeklyPoints[child.id] || 0;
-      scoreLabel = "this week";
+      scoreLabel = this._t('common.this_week');
     } else {
       scoreValue = child.points || 0;
       scoreLabel = pointsName;
@@ -329,19 +334,19 @@ class TaskMateLeaderboardCard extends LitElement {
             ${this.config.show_streak !== false && sortBy !== "streak" ? html`
               <span class="stat-chip">
                 <ha-icon icon="mdi:fire" style="color: #e67e22;"></ha-icon>
-                ${child.current_streak || 0}d streak
+                ${this._t('common.d_streak', { count: child.current_streak || 0 })}
               </span>
             ` : ''}
             ${this.config.show_weekly !== false && sortBy !== "weekly" ? html`
               <span class="stat-chip">
                 <ha-icon icon="mdi:calendar-week" style="color: #3498db;"></ha-icon>
-                ${weeklyPoints[child.id] || 0} this week
+                ${weeklyPoints[child.id] || 0} ${this._t('common.this_week')}
               </span>
             ` : ''}
             ${sortBy !== "points" ? html`
               <span class="stat-chip">
                 <ha-icon icon="${pointsIcon}" style="color: #f1c40f;"></ha-icon>
-                ${child.points || 0} total
+                ${child.points || 0} ${this._t('common.total')}
               </span>
             ` : ''}
           </div>
@@ -367,7 +372,7 @@ class TaskMateLeaderboardCard extends LitElement {
         <div class="card-header">
           <div class="header-content">
             <ha-icon class="header-icon" icon="mdi:trophy"></ha-icon>
-            <span class="header-title">${this.config.title}</span>
+            <span class="header-title">${this.config.title || this._t('leaderboard.default_title')}</span>
           </div>
         </div>
         <div class="card-content">
@@ -381,7 +386,7 @@ class TaskMateLeaderboardCard extends LitElement {
               <div class="rank-stats">
                 <span class="stat-chip">
                   <ha-icon icon="mdi:fire" style="color:#e67e22;"></ha-icon>
-                  ${child.current_streak || 0}d streak
+                  ${this._t('common.d_streak', { count: child.current_streak || 0 })}
                 </span>
               </div>
             </div>
@@ -391,25 +396,25 @@ class TaskMateLeaderboardCard extends LitElement {
             </div>
           </div>
 
-          <div class="solo-header">Personal Bests</div>
+          <div class="solo-header">${this._t('leaderboard.personal_bests')}</div>
           <div class="personal-best-row">
             <ha-icon class="pb-icon" icon="mdi:fire" style="color:#e67e22;"></ha-icon>
-            <span class="pb-label">Best streak</span>
-            <span class="pb-value">${bestStreak} days</span>
+            <span class="pb-label">${this._t('leaderboard.best_streak')}</span>
+            <span class="pb-value">${this._t('leaderboard.best_streak_value', { count: bestStreak })}</span>
           </div>
           <div class="personal-best-row">
             <ha-icon class="pb-icon" icon="mdi:checkbox-multiple-marked" style="color:#3498db;"></ha-icon>
-            <span class="pb-label">Total chores completed</span>
+            <span class="pb-label">${this._t('leaderboard.total_chores_completed')}</span>
             <span class="pb-value">${totalChores}</span>
           </div>
           <div class="personal-best-row">
             <ha-icon class="pb-icon" icon="mdi:calendar-week" style="color:#9b59b6;"></ha-icon>
-            <span class="pb-label">Points this week</span>
+            <span class="pb-label">${this._t('leaderboard.points_this_week')}</span>
             <span class="pb-value">${weekly}</span>
           </div>
           <div class="personal-best-row">
             <ha-icon class="pb-icon" icon="${pointsIcon}" style="color:#f1c40f;"></ha-icon>
-            <span class="pb-label">Total points earned</span>
+            <span class="pb-label">${this._t('leaderboard.total_points_earned')}</span>
             <span class="pb-value">${child.total_points_earned || child.points || 0}</span>
           </div>
         </div>
@@ -450,6 +455,11 @@ class TaskMateLeaderboardCardEditor extends LitElement {
     return { hass: { type: Object }, config: { type: Object } };
   }
 
+  _t(key, params) {
+    const fn = window.__taskmate_localize;
+    return fn ? fn(this.hass, key, params) : key;
+  }
+
   static get styles() {
     return css`
       :host { display: block; padding: 4px 0; }
@@ -471,53 +481,53 @@ class TaskMateLeaderboardCardEditor extends LitElement {
     if (!this.hass || !this.config) return html``;
     return html`
       <ha-textfield
-        label="Overview Entity"
+        label="${this._t('leaderboard.editor.entity_label')}"
         .value="${this.config.entity || ''}"
         @change="${e => this._update('entity', e.target.value)}"
-        helper="The TaskMate overview sensor"
+        helper="${this._t('leaderboard.editor.entity_helper')}"
         helperPersistent
         placeholder="sensor.taskmate_overview"
       ></ha-textfield>
 
       <ha-textfield
-        label="Card Title"
+        label="${this._t('leaderboard.editor.title_label')}"
         .value="${this.config.title || ''}"
         @change="${e => this._update('title', e.target.value)}"
-        placeholder="Leaderboard"
+        placeholder="${this._t('leaderboard.default_title')}"
       ></ha-textfield>
 
       <div class="field-row">
-        <label class="field-label">Rank by</label>
+        <label class="field-label">${this._t('leaderboard.editor.rank_by_label')}</label>
         <select class="field-select" @change="${e => this._update('sort_by', e.target.value)}">
-          <option value="points" ?selected="${(this.config.sort_by || 'points') === 'points'}">All-time Points</option>
-          <option value="streak" ?selected="${this.config.sort_by === 'streak'}">Current Streak</option>
-          <option value="weekly" ?selected="${this.config.sort_by === 'weekly'}">This Week's Points</option>
+          <option value="points" ?selected="${(this.config.sort_by || 'points') === 'points'}">${this._t('leaderboard.editor.sort_option_points')}</option>
+          <option value="streak" ?selected="${this.config.sort_by === 'streak'}">${this._t('leaderboard.editor.sort_option_streak')}</option>
+          <option value="weekly" ?selected="${this.config.sort_by === 'weekly'}">${this._t('leaderboard.editor.sort_option_weekly')}</option>
         </select>
-        <span class="field-helper">What to rank children by</span>
+        <span class="field-helper">${this._t('leaderboard.editor.rank_by_helper')}</span>
       </div>
 
       <label class="check-row">
         <input type="checkbox"
           ?checked="${this.config.show_streak !== false}"
-          
+
           @change="${e => this._update('show_streak', e.target.checked)}"
         />
-        <span class="check-label">Show streak in sub-stats</span>
+        <span class="check-label">${this._t('leaderboard.editor.show_streak')}</span>
       </label>
 
       <label class="check-row">
         <input type="checkbox"
           ?checked="${this.config.show_weekly !== false}"
-          
+
           @change="${e => this._update('show_weekly', e.target.checked)}"
         />
-        <span class="check-label">Show weekly points in sub-stats</span>
+        <span class="check-label">${this._t('leaderboard.editor.show_weekly')}</span>
       </label>
-        <span class="field-helper">Card header background colour</span>
+        <span class="field-helper">${this._t('leaderboard.editor.header_colour_helper')}</span>
       </div>
     
       <div class="field-row">
-        <label class="field-label">Header Colour</label>
+        <label class="field-label">${this._t('leaderboard.editor.header_colour_label')}</label>
         <div style="display:flex;align-items:center;gap:10px;">
           <input
             type="color"
@@ -529,9 +539,9 @@ class TaskMateLeaderboardCardEditor extends LitElement {
           <button
             style="font-size:11px;color:var(--secondary-text-color);background:none;border:1px solid var(--divider-color,#e0e0e0);border-radius:4px;padding:3px 8px;cursor:pointer;"
             @click=${() => this._update('header_color', '#b7950b')}
-          >Reset</button>
+          >${this._t('common.reset')}</button>
         </div>
-        <span class="field-helper">Card header background colour</span>
+        <span class="field-helper">${this._t('leaderboard.editor.header_colour_helper')}</span>
       </div>
     `;
   }

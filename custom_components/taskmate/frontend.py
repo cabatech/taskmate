@@ -35,8 +35,9 @@ CARDS: Final = [
     "taskmate-penalties-card.js",
 ]
 
-# JS modules to load globally (for config flow sound preview)
+# JS modules to load globally (for config flow sound preview + i18n)
 GLOBAL_MODULES: Final = [
+    "taskmate-localize.js",
     "taskmate-config-sounds.js",
 ]
 

@@ -81,12 +81,12 @@ class Child:
             total_chores_completed=data.get("total_chores_completed", 0),
             current_streak=data.get("current_streak", 0),
             best_streak=data.get("best_streak", 0),
-            pending_rewards=data.get("pending_rewards", []),
-            chore_order=data.get("chore_order", []),
+            pending_rewards=list(data.get("pending_rewards", [])),
+            chore_order=list(data.get("chore_order", [])),
             last_completion_date=data.get("last_completion_date", None),
             streak_paused=data.get("streak_paused", False),
-            streak_milestones_achieved=data.get("streak_milestones_achieved", []),
-            awarded_perfect_weeks=data.get("awarded_perfect_weeks", []),
+            streak_milestones_achieved=list(data.get("streak_milestones_achieved", [])),
+            awarded_perfect_weeks=list(data.get("awarded_perfect_weeks", [])),
             id=data.get("id", generate_id()),
         )
 
@@ -148,13 +148,13 @@ class Chore:
             name=data.get("name", ""),
             points=data.get("points", 10),
             description=data.get("description", ""),
-            assigned_to=data.get("assigned_to", []),
+            assigned_to=list(data.get("assigned_to", [])),
             requires_approval=data.get("requires_approval", True),
             time_category=data.get("time_category", "anytime"),
             daily_limit=data.get("daily_limit", 1),
             completion_sound=data.get("completion_sound", "coin"),
             schedule_mode=schedule_mode,
-            due_days=data.get("due_days", []),
+            due_days=list(data.get("due_days", [])),
             recurrence=data.get("recurrence", "weekly"),
             recurrence_day=data.get("recurrence_day", ""),
             recurrence_start=data.get("recurrence_start", ""),
@@ -203,7 +203,7 @@ class Reward:
             cost=data.get("cost", 50),
             description=data.get("description", ""),
             icon=data.get("icon", "mdi:gift"),
-            assigned_to=data.get("assigned_to", []),
+            assigned_to=list(data.get("assigned_to", [])),
             is_jackpot=data.get("is_jackpot", False),
             id=data.get("id", generate_id()),
         )
@@ -320,7 +320,7 @@ class Penalty:
             points=data.get("points", 0),
             description=data.get("description", ""),
             icon=data.get("icon", "mdi:alert-circle-outline"),
-            assigned_to=data.get("assigned_to", []),
+            assigned_to=list(data.get("assigned_to", [])),
         )
 
     def to_dict(self) -> dict[str, Any]:

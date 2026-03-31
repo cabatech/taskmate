@@ -53,7 +53,7 @@ async def async_setup_entry(
     tracked_child_ids: set[str] = set()
 
     # Add overall stats sensor
-    entities.append(ChoremandorOverallStatsSensor(coordinator, entry))
+    entities.append(TaskMateOverallStatsSensor(coordinator, entry))
 
     # Add sensors for each child
     for child in coordinator.data.get("children", []):
@@ -107,7 +107,7 @@ class TaskMateBaseSensor(CoordinatorEntity, SensorEntity):
         )
 
 
-class ChoremandorOverallStatsSensor(TaskMateBaseSensor):
+class TaskMateOverallStatsSensor(TaskMateBaseSensor):
     """Sensor for overall TaskMate statistics."""
 
     def __init__(
@@ -119,6 +119,8 @@ class ChoremandorOverallStatsSensor(TaskMateBaseSensor):
         super().__init__(coordinator, entry)
         self._attr_unique_id = f"{entry.entry_id}_overall_stats"
         self._attr_name = "TaskMate Overview"
+        self._cached_attrs: dict | None = None
+        self._cached_data_id: int | None = None
 
     @property
     def native_value(self) -> int:
@@ -127,6 +129,16 @@ class ChoremandorOverallStatsSensor(TaskMateBaseSensor):
 
     @property
     def extra_state_attributes(self) -> dict:
+        # Return cached result if coordinator data hasn't changed
+        data_id = id(self.coordinator.data)
+        if self._cached_data_id == data_id and self._cached_attrs is not None:
+            return self._cached_attrs
+        attrs = self._build_attributes()
+        self._cached_attrs = attrs
+        self._cached_data_id = data_id
+        return attrs
+
+    def _build_attributes(self) -> dict:
         """Return additional attributes."""
         data = self.coordinator.data
         children = data.get("children", [])

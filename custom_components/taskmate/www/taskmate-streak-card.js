@@ -22,6 +22,11 @@ class TaskMateStreakCard extends LitElement {
     };
   }
 
+  _t(key, params) {
+    const fn = window.__taskmate_localize;
+    return fn ? fn(this.hass, key, params) : key;
+  }
+
   static get styles() {
     return css`
       :host {
@@ -202,9 +207,9 @@ class TaskMateStreakCard extends LitElement {
   }
 
   setConfig(config) {
-    if (!config.entity) throw new Error("Please define an entity");
+    if (!config.entity) throw new Error(this._t('streak.error.entity_required'));
     this.config = {
-      title: "Streaks & Achievements",
+      title: null,
       child_id: null,
       streak_days_shown: 14,
             header_color: '#e74c3c',
@@ -223,10 +228,10 @@ class TaskMateStreakCard extends LitElement {
 
     const entity = this.hass.states[this.config.entity];
     if (!entity) {
-      return html`<ha-card><div class="error-state"><ha-icon icon="mdi:alert-circle"></ha-icon><div>Entity not found: ${this.config.entity}</div></div></ha-card>`;
+      return html`<ha-card><div class="error-state"><ha-icon icon="mdi:alert-circle"></ha-icon><div>${this._t('common.entity_not_found', { entity: this.config.entity })}</div></div></ha-card>`;
     }
     if (entity.state === "unavailable" || entity.state === "unknown") {
-      return html`<ha-card><div class="error-state"><ha-icon icon="mdi:alert-circle"></ha-icon><div>TaskMate is unavailable</div></div></ha-card>`;
+      return html`<ha-card><div class="error-state"><ha-icon icon="mdi:alert-circle"></ha-icon><div>${this._t('common.unavailable')}</div></div></ha-card>`;
     }
 
     let children = entity.attributes.children || [];
@@ -240,7 +245,7 @@ class TaskMateStreakCard extends LitElement {
     }
 
     if (children.length === 0) {
-      return html`<ha-card><div class="empty-state"><ha-icon icon="mdi:account-group"></ha-icon><div>No children found</div></div></ha-card>`;
+      return html`<ha-card><div class="empty-state"><ha-icon icon="mdi:account-group"></ha-icon><div>${this._t('common.no_children')}</div></div></ha-card>`;
     }
 
     return html`
@@ -249,7 +254,7 @@ class TaskMateStreakCard extends LitElement {
         <div class="card-header">
           <div class="header-content">
             <ha-icon class="header-icon" icon="mdi:fire"></ha-icon>
-            <span class="header-title">${this.config.title}</span>
+            <span class="header-title">${this.config.title || this._t('streak.default_title')}</span>
           </div>
         </div>
         <div class="card-content">
@@ -283,7 +288,7 @@ class TaskMateStreakCard extends LitElement {
             <div class="child-name">${child.name}</div>
             <div class="streak-count-row">
               <span class="streak-number ${streakClass}">${streak}</span>
-              <span class="streak-label">day streak</span>
+              <span class="streak-label">${this._t('streak.day_streak')}</span>
               <span class="streak-emoji">${streakEmoji}</span>
             </div>
           </div>
@@ -297,7 +302,7 @@ class TaskMateStreakCard extends LitElement {
 
         ${achievements.length > 0 ? html`
           <div class="achievements-section">
-            <div class="achievements-label">Achievements</div>
+            <div class="achievements-label">${this._t('streak.achievements')}</div>
             <div class="badges">
               ${achievements.map(a => html`
                 <div class="badge ${a.earned ? 'earned' : 'locked'}" title="${a.description}">
@@ -375,16 +380,16 @@ class TaskMateStreakCard extends LitElement {
     const bestStreak = child.best_streak || streak || 0;
 
     const milestones = [
-      { id: "first", name: "First!", emoji: "🌟", description: "Complete your first chore", earned: totalCompletions >= 1 },
-      { id: "ten", name: "10 Done", emoji: "🏅", description: "Complete 10 chores", earned: totalCompletions >= 10 },
-      { id: "fifty", name: "50 Done", emoji: "🥈", description: "Complete 50 chores", earned: totalCompletions >= 50 },
-      { id: "hundred", name: "100 Done", emoji: "🥇", description: "Complete 100 chores", earned: totalCompletions >= 100 },
-      { id: "streak3", name: "3 Days", emoji: "⚡", description: "3 day streak", earned: bestStreak >= 3 },
-      { id: "streak7", name: "Week!", emoji: "🔥", description: "7 day streak", earned: bestStreak >= 7 },
-      { id: "streak14", name: "2 Weeks", emoji: "🔥🔥", description: "14 day streak", earned: bestStreak >= 14 },
-      { id: "streak30", name: "Month!", emoji: "💎", description: "30 day streak", earned: bestStreak >= 30 },
-      { id: "points50", name: "50 ⭐", emoji: "🎯", description: "Earn 50 points total", earned: totalPoints >= 50 },
-      { id: "points100", name: "100 ⭐", emoji: "💰", description: "Earn 100 points total", earned: totalPoints >= 100 },
+      { id: "first", name: this._t('streak.achievement.first_name'), emoji: "🌟", description: this._t('streak.achievement.first_desc'), earned: totalCompletions >= 1 },
+      { id: "ten", name: this._t('streak.achievement.ten_name'), emoji: "🏅", description: this._t('streak.achievement.ten_desc'), earned: totalCompletions >= 10 },
+      { id: "fifty", name: this._t('streak.achievement.fifty_name'), emoji: "🥈", description: this._t('streak.achievement.fifty_desc'), earned: totalCompletions >= 50 },
+      { id: "hundred", name: this._t('streak.achievement.hundred_name'), emoji: "🥇", description: this._t('streak.achievement.hundred_desc'), earned: totalCompletions >= 100 },
+      { id: "streak3", name: this._t('streak.achievement.streak3_name'), emoji: "⚡", description: this._t('streak.achievement.streak3_desc'), earned: bestStreak >= 3 },
+      { id: "streak7", name: this._t('streak.achievement.streak7_name'), emoji: "🔥", description: this._t('streak.achievement.streak7_desc'), earned: bestStreak >= 7 },
+      { id: "streak14", name: this._t('streak.achievement.streak14_name'), emoji: "🔥🔥", description: this._t('streak.achievement.streak14_desc'), earned: bestStreak >= 14 },
+      { id: "streak30", name: this._t('streak.achievement.streak30_name'), emoji: "💎", description: this._t('streak.achievement.streak30_desc'), earned: bestStreak >= 30 },
+      { id: "points50", name: this._t('streak.achievement.points50_name'), emoji: "🎯", description: this._t('streak.achievement.points50_desc'), earned: totalPoints >= 50 },
+      { id: "points100", name: this._t('streak.achievement.points100_name'), emoji: "💰", description: this._t('streak.achievement.points100_desc'), earned: totalPoints >= 100 },
     ];
 
     // Show earned ones + next locked milestone
@@ -398,6 +403,11 @@ class TaskMateStreakCard extends LitElement {
 class TaskMateStreakCardEditor extends LitElement {
   static get properties() {
     return { hass: { type: Object }, config: { type: Object } };
+  }
+
+  _t(key, params) {
+    const fn = window.__taskmate_localize;
+    return fn ? fn(this.hass, key, params) : key;
   }
 
   static get styles() {
@@ -431,39 +441,39 @@ class TaskMateStreakCardEditor extends LitElement {
 
     return html`
       <ha-textfield
-        label="Overview Entity"
+        label="${this._t('common.editor.overview_entity')}"
         .value="${this.config.entity || ""}"
         @change="${e => this._updateConfig('entity', e.target.value)}"
-        helper="The TaskMate overview sensor entity"
+        helper="${this._t('common.editor.overview_entity_helper')}"
         helperPersistent
         placeholder="sensor.taskmate_overview"
       ></ha-textfield>
       <ha-textfield
-        label="Title"
+        label="${this._t('streak.editor.title')}"
         .value="${this.config.title || ""}"
         @change="${e => this._updateConfig('title', e.target.value)}"
         placeholder="Streaks & Achievements"
       ></ha-textfield>
       <div class="form-row">
-        <label class="form-label">Filter by Child (optional)</label>
+        <label class="form-label">${this._t('common.editor.filter_by_child')}</label>
         <select class="form-select" @change="${e => this._updateConfig('child_id', e.target.value || null)}">
-          <option value="" ?selected="${!this.config.child_id}">All Children</option>
+          <option value="" ?selected="${!this.config.child_id}">${this._t('common.editor.filter_by_child_all')}</option>
           ${children.map(c => html`<option value="${c.id}" ?selected="${this.config.child_id === c.id}">${c.name}</option>`)}
         </select>
-        <span class="form-helper">Show streak for a specific child only</span>
+        <span class="form-helper">${this._t('streak.editor.child_helper')}</span>
       </div>
       <ha-textfield
-        label="Days Shown in Bar"
+        label="${this._t('streak.editor.days_shown')}"
         type="number"
         .value="${String(this.config.streak_days_shown || 14)}"
         @change="${e => this._updateConfig('streak_days_shown', parseInt(e.target.value) || 14)}"
-        helper="How many days of dots to show (default: 14)"
+        helper="${this._t('streak.editor.days_shown_helper')}"
         helperPersistent
       ></ha-textfield>
-        <span class="field-helper">Card header background colour</span>
+        <span class="field-helper">${this._t('common.editor.header_colour_helper')}</span>
       </div>
       <div class="field-row">
-        <label class="field-label">Header Colour</label>
+        <label class="field-label">${this._t('common.editor.header_colour')}</label>
         <div style="display:flex;align-items:center;gap:10px;">
           <input
             type="color"
@@ -475,9 +485,9 @@ class TaskMateStreakCardEditor extends LitElement {
           <button
             style="font-size:11px;color:var(--secondary-text-color);background:none;border:1px solid var(--divider-color,#e0e0e0);border-radius:4px;padding:3px 8px;cursor:pointer;"
             @click=${() => this._updateConfig('header_color', '#e74c3c')}
-          >Reset</button>
+          >${this._t('common.reset')}</button>
         </div>
-        <span class="field-helper">Card header background colour</span>
+        <span class="field-helper">${this._t('common.editor.header_colour_helper')}</span>
       </div>
     `;
   }

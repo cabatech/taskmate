@@ -21,6 +21,11 @@ class TaskMateActivityCard extends LitElement {
     };
   }
 
+  _t(key, params) {
+    const fn = window.__taskmate_localize;
+    return fn ? fn(this.hass, key, params) : key;
+  }
+
   static get styles() {
     return css`
       :host {
@@ -198,7 +203,7 @@ class TaskMateActivityCard extends LitElement {
   setConfig(config) {
     if (!config.entity) throw new Error("Please define an entity");
     this.config = {
-      title: "Activity",
+      title: "",
       max_items: 30,
       child_id: null,
             header_color: '#2471a3',
@@ -217,10 +222,10 @@ class TaskMateActivityCard extends LitElement {
 
     const entity = this.hass.states[this.config.entity];
     if (!entity) {
-      return html`<ha-card><div class="error-state"><ha-icon icon="mdi:alert-circle"></ha-icon><div>Entity not found: ${this.config.entity}</div></div></ha-card>`;
+      return html`<ha-card><div class="error-state"><ha-icon icon="mdi:alert-circle"></ha-icon><div>${this._t('common.entity_not_found', { entity: this.config.entity })}</div></div></ha-card>`;
     }
     if (entity.state === "unavailable" || entity.state === "unknown") {
-      return html`<ha-card><div class="error-state"><ha-icon icon="mdi:alert-circle"></ha-icon><div>TaskMate is unavailable</div></div></ha-card>`;
+      return html`<ha-card><div class="error-state"><ha-icon icon="mdi:alert-circle"></ha-icon><div>${this._t('common.unavailable')}</div></div></ha-card>`;
     }
 
     const pointsIcon = entity.attributes.points_icon || "mdi:star";
@@ -273,13 +278,13 @@ class TaskMateActivityCard extends LitElement {
           <div class="card-header">
             <div class="header-content">
               <ha-icon class="header-icon" icon="mdi:timeline-clock"></ha-icon>
-              <span class="header-title">${this.config.title}</span>
+              <span class="header-title">${this.config.title || this._t('activity.default_title')}</span>
             </div>
           </div>
           <div class="empty-state">
             <ha-icon icon="mdi:timeline-clock-outline"></ha-icon>
-            <div class="message">No activity yet</div>
-            <div class="submessage">Completed chores will appear here</div>
+            <div class="message">${this._t('activity.no_activity_yet')}</div>
+            <div class="submessage">${this._t('activity.completed_chores_will_appear')}</div>
           </div>
         </ha-card>
       `;
@@ -294,9 +299,9 @@ class TaskMateActivityCard extends LitElement {
         <div class="card-header">
           <div class="header-content">
             <ha-icon class="header-icon" icon="mdi:timeline-clock"></ha-icon>
-            <span class="header-title">${this.config.title}</span>
+            <span class="header-title">${this.config.title || this._t('activity.default_title')}</span>
           </div>
-          <span class="event-count">${events.length} events</span>
+          <span class="event-count">${this._t('activity.events_count', { count: events.length })}</span>
         </div>
         <div class="feed-container">
           ${groups.map(([dayLabel, items]) => html`
@@ -311,7 +316,7 @@ class TaskMateActivityCard extends LitElement {
   }
 
   _renderItem(item, childNames, pointsIcon, chorePointsMap) {
-    const childName = childNames[item.child_id] || item.child_name || "Unknown";
+    const childName = childNames[item.child_id] || item.child_name || this._t('activity.unknown_child');
     const type = item.type || "chore";
     const time = this._formatTime(new Date(item.completed_at));
 
@@ -327,9 +332,9 @@ class TaskMateActivityCard extends LitElement {
           <div class="activity-body">
             <div class="activity-title">
               <strong>${childName}</strong>
-              ${isAdd ? ' received' : ' lost'}
+              ${isAdd ? ` ${this._t('activity.received')}` : ` ${this._t('activity.lost')}`}
               <strong> ${pts}</strong>
-              ${item.reason ? html` — <em>${item.reason}</em>` : ' points manually'}
+              ${item.reason ? html` — <em>${item.reason}</em>` : ` ${this._t('activity.points_manually')}`}
             </div>
             <div class="activity-meta">
               <span class="activity-time">${time}</span>
@@ -355,8 +360,8 @@ class TaskMateActivityCard extends LitElement {
           <div class="activity-body">
             <div class="activity-title">
               <strong>${childName}</strong>
-              ${isPending ? ' claimed' : ' redeemed'}
-              <strong> ${item.reward_name || 'a reward'}</strong>
+              ${isPending ? ` ${this._t('activity.claimed')}` : ` ${this._t('activity.redeemed')}`}
+              <strong> ${item.reward_name || this._t('activity.a_reward')}</strong>
             </div>
             <div class="activity-meta">
               <span class="activity-time">${time}</span>
@@ -367,7 +372,7 @@ class TaskMateActivityCard extends LitElement {
                 </span>
               ` : ''}
               <span class="activity-status ${isPending ? 'pending' : 'approved'}">
-                ${isPending ? 'awaiting approval' : 'approved'}
+                ${isPending ? this._t('activity.awaiting_approval') : this._t('common.approved')}
               </span>
             </div>
           </div>
@@ -383,10 +388,10 @@ class TaskMateActivityCard extends LitElement {
     };
     const { icon, cls } = iconMap[type] || iconMap.chore;
 
-    const choreName = item.chore_name || (chorePointsMap && item.chore_id ? '' : 'a chore');
+    const choreName = item.chore_name || (chorePointsMap && item.chore_id ? '' : this._t('activity.a_chore'));
     const titleMap = {
-      chore: html`<strong>${childName}</strong> completed <strong>${choreName || 'a chore'}</strong>`,
-      reward: html`<strong>${childName}</strong> claimed <strong>${item.reward_name || 'a reward'}</strong>`,
+      chore: html`<strong>${childName}</strong> ${this._t('activity.completed')} <strong>${choreName || this._t('activity.a_chore')}</strong>`,
+      reward: html`<strong>${childName}</strong> ${this._t('activity.claimed')} <strong>${item.reward_name || this._t('activity.a_reward')}</strong>`,
     };
 
     const pts = item.points !== undefined ? item.points : (chorePointsMap?.[item.chore_id] || 0);
@@ -407,7 +412,7 @@ class TaskMateActivityCard extends LitElement {
               </span>
             ` : ''}
             ${type === 'chore' ? html`
-              <span class="activity-status ${status}">${status.charAt(0).toUpperCase() + status.slice(1)}</span>
+              <span class="activity-status ${status}">${this._t('common.' + status)}</span>
             ` : ''}
           </div>
         </div>
@@ -428,8 +433,8 @@ class TaskMateActivityCard extends LitElement {
       const yKey = yesterday.toLocaleDateString("en-CA", { timeZone: tz });
 
       let label;
-      if (key === nowKey) label = "Today";
-      else if (key === yKey) label = "Yesterday";
+      if (key === nowKey) label = this._t('common.today');
+      else if (key === yKey) label = this._t('common.yesterday');
       else label = date.toLocaleDateString(undefined, { timeZone: tz, month: "short", day: "numeric", weekday: "short" });
 
       if (!groups.has(label)) groups.set(label, []);
@@ -448,6 +453,11 @@ class TaskMateActivityCard extends LitElement {
 class TaskMateActivityCardEditor extends LitElement {
   static get properties() {
     return { hass: { type: Object }, config: { type: Object } };
+  }
+
+  _t(key, params) {
+    const fn = window.__taskmate_localize;
+    return fn ? fn(this.hass, key, params) : key;
   }
 
   static get styles() {
@@ -481,39 +491,39 @@ class TaskMateActivityCardEditor extends LitElement {
 
     return html`
       <ha-textfield
-        label="Overview Entity"
+        label="${this._t('common.editor.overview_entity')}"
         .value="${this.config.entity || ""}"
         @change="${e => this._updateConfig('entity', e.target.value)}"
-        helper="The TaskMate overview sensor entity"
+        helper="${this._t('common.editor.overview_entity_helper')}"
         helperPersistent
         placeholder="sensor.taskmate_overview"
       ></ha-textfield>
       <ha-textfield
-        label="Title"
+        label="${this._t('common.editor.card_title')}"
         .value="${this.config.title || ""}"
         @change="${e => this._updateConfig('title', e.target.value)}"
-        placeholder="Activity"
+        placeholder="${this._t('activity.default_title')}"
       ></ha-textfield>
       <div class="form-row">
-        <label class="form-label">Filter by Child (optional)</label>
+        <label class="form-label">${this._t('common.editor.filter_by_child')}</label>
         <select class="form-select" @change="${e => this._updateConfig('child_id', e.target.value || null)}">
-          <option value="" ?selected="${!this.config.child_id}">All Children</option>
+          <option value="" ?selected="${!this.config.child_id}">${this._t('common.editor.filter_by_child_all')}</option>
           ${children.map(c => html`<option value="${c.id}" ?selected="${this.config.child_id === c.id}">${c.name}</option>`)}
         </select>
-        <span class="form-helper">Only show activity for this child</span>
+        <span class="form-helper">${this._t('activity.editor.filter_child_helper')}</span>
       </div>
       <ha-textfield
-        label="Max Items"
+        label="${this._t('activity.editor.max_items')}"
         type="number"
         .value="${String(this.config.max_items || 30)}"
         @change="${e => this._updateConfig('max_items', parseInt(e.target.value) || 30)}"
-        helper="Maximum number of events to show (default: 30)"
+        helper="${this._t('activity.editor.max_items_helper')}"
         helperPersistent
       ></ha-textfield>
-        <span class="field-helper">Card header background colour</span>
+        <span class="field-helper">${this._t('common.editor.header_colour_helper')}</span>
       </div>
       <div class="field-row">
-        <label class="field-label">Header Colour</label>
+        <label class="field-label">${this._t('common.editor.header_colour')}</label>
         <div style="display:flex;align-items:center;gap:10px;">
           <input
             type="color"
@@ -525,9 +535,9 @@ class TaskMateActivityCardEditor extends LitElement {
           <button
             style="font-size:11px;color:var(--secondary-text-color);background:none;border:1px solid var(--divider-color,#e0e0e0);border-radius:4px;padding:3px 8px;cursor:pointer;"
             @click=${() => this._updateConfig('header_color', '#2471a3')}
-          >Reset</button>
+          >${this._t('common.reset')}</button>
         </div>
-        <span class="field-helper">Card header background colour</span>
+        <span class="field-helper">${this._t('common.editor.header_colour_helper')}</span>
       </div>
     `;
   }

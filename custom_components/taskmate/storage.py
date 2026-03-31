@@ -8,7 +8,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.storage import Store
 
 from .const import DOMAIN
-from .models import Child, Chore, ChoreCompletion, Reward, RewardClaim, PointsTransaction
+from .models import Child, Chore, ChoreCompletion, Penalty, Reward, RewardClaim, PointsTransaction
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -284,14 +284,12 @@ class TaskMateStorage:
         ]
 
     # Penalties management
-    def get_penalties(self) -> list:
+    def get_penalties(self) -> list[Penalty]:
         """Get all penalties."""
-        from .models import Penalty
         return [Penalty.from_dict(p) for p in self._data.get("penalties", [])]
 
-    def get_penalty(self, penalty_id: str):
+    def get_penalty(self, penalty_id: str) -> Penalty | None:
         """Get a penalty by ID."""
-        from .models import Penalty
         for p in self._data.get("penalties", []):
             if p.get("id") == penalty_id:
                 return Penalty.from_dict(p)
@@ -351,6 +349,12 @@ class TaskMateStorage:
         """Remove all reward claims for a given child."""
         self._data["reward_claims"] = [
             c for c in self._data.get("reward_claims", []) if c.get("child_id") != child_id
+        ]
+
+    def remove_reward_claims_for_reward(self, reward_id: str) -> None:
+        """Remove all reward claims for a given reward."""
+        self._data["reward_claims"] = [
+            c for c in self._data.get("reward_claims", []) if c.get("reward_id") != reward_id
         ]
 
     def remove_transactions_for_child(self, child_id: str) -> None:

@@ -60,13 +60,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     await coordinator.async_initialize()
 
     # Store initial settings from config entry only on first setup
-    # (when storage doesn't have them yet), not on every restart
-    if not coordinator.storage.get_points_name() or coordinator.storage.get_points_name() == "Stars":
+    # (when storage has never been written yet). Once storage exists, the user
+    # controls these values via Settings — never overwrite on restart.
+    if not coordinator.storage._data.get("_initial_setup_done"):
         if entry.data.get("points_name"):
             coordinator.storage.set_points_name(entry.data["points_name"])
-    if not coordinator.storage.get_points_icon() or coordinator.storage.get_points_icon() == "mdi:star":
         if entry.data.get("points_icon"):
             coordinator.storage.set_points_icon(entry.data["points_icon"])
+        coordinator.storage._data["_initial_setup_done"] = True
     await coordinator.storage.async_save()
 
     hass.data[DOMAIN][entry.entry_id] = coordinator

@@ -47,14 +47,45 @@ async def async_setup_entry(
                 ClaimRewardButton(coordinator, entry, child, reward)
             )
 
+    # Track which entity combos already exist
+    tracked_combos: set[str] = set()
+    for child in children:
+        for chore in chores:
+            if not chore.assigned_to or child.id in chore.assigned_to:
+                tracked_combos.add(f"{child.id}_{chore.id}_complete")
+        for reward in rewards:
+            tracked_combos.add(f"{child.id}_{reward.id}_claim")
+
     async_add_entities(entities)
 
-    # Set up listener for updates
+    # Set up listener to add buttons for new children/chores/rewards
     @callback
     def async_update_entities() -> None:
-        """Update entities when data changes."""
-        # This is called when coordinator updates
-        pass
+        """Add button entities for newly created children, chores, or rewards."""
+        new_entities: list[ButtonEntity] = []
+        current_children = coordinator.data.get("children", [])
+        current_chores = coordinator.data.get("chores", [])
+        current_rewards = coordinator.data.get("rewards", [])
+
+        for child in current_children:
+            for chore in current_chores:
+                if not chore.assigned_to or child.id in chore.assigned_to:
+                    key = f"{child.id}_{chore.id}_complete"
+                    if key not in tracked_combos:
+                        new_entities.append(
+                            CompleteChoreButton(coordinator, entry, child, chore)
+                        )
+                        tracked_combos.add(key)
+            for reward in current_rewards:
+                key = f"{child.id}_{reward.id}_claim"
+                if key not in tracked_combos:
+                    new_entities.append(
+                        ClaimRewardButton(coordinator, entry, child, reward)
+                    )
+                    tracked_combos.add(key)
+
+        if new_entities:
+            async_add_entities(new_entities)
 
     coordinator.async_add_listener(async_update_entities)
 
@@ -154,16 +185,28 @@ class ClaimRewardButton(TaskMateBaseButton):
         reward = self.coordinator.get_reward(self.reward_id)
         return reward.icon if reward else "mdi:gift"
 
+    def _get_committed_points(self, child_id: str) -> int:
+        """Calculate points committed by pending reward claims for a child."""
+        pending_claims = self.coordinator.data.get("pending_reward_claims", [])
+        committed = 0
+        for c in pending_claims:
+            if c.child_id == child_id:
+                reward = self.coordinator.get_reward(c.reward_id)
+                if reward:
+                    committed += reward.cost
+        return committed
+
     @property
     def available(self) -> bool:
-        """Return if button is available."""
+        """Return if button is available (accounting for committed points)."""
         child = self.coordinator.get_child(self.child_id)
         reward = self.coordinator.get_reward(self.reward_id)
 
         if not child or not reward:
             return False
 
-        return child.points >= reward.cost
+        available_points = child.points - self._get_committed_points(child.id)
+        return available_points >= reward.cost
 
     @property
     def extra_state_attributes(self) -> dict:
@@ -174,7 +217,9 @@ class ClaimRewardButton(TaskMateBaseButton):
         if not child or not reward:
             return {}
 
-        can_afford = child.points >= reward.cost
+        committed = self._get_committed_points(child.id)
+        available_points = child.points - committed
+        can_afford = available_points >= reward.cost
 
         return {
             "child_id": child.id,
@@ -183,8 +228,10 @@ class ClaimRewardButton(TaskMateBaseButton):
             "reward_name": reward.name,
             "cost": reward.cost,
             "child_points": child.points,
+            "committed_points": committed,
+            "available_points": available_points,
             "can_afford": can_afford,
-            "points_needed": max(0, reward.cost - child.points),
+            "points_needed": max(0, reward.cost - available_points),
         }
 
     async def async_press(self) -> None:

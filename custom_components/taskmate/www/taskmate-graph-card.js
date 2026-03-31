@@ -38,6 +38,11 @@ class TaskMateGraphCard extends LitElement {
     this._mode = "daily";
   }
 
+  _t(key, params) {
+    const fn = window.__taskmate_localize;
+    return fn ? fn(this.hass, key, params) : key;
+  }
+
   static get styles() {
     return css`
       :host {
@@ -196,7 +201,7 @@ class TaskMateGraphCard extends LitElement {
   setConfig(config) {
     if (!config.entity) throw new Error("Please define an entity");
     this.config = {
-      title: "Points Graph",
+      title: "",
       child_id: null,
       days: 14,
             header_color: '#d35400',
@@ -215,7 +220,7 @@ class TaskMateGraphCard extends LitElement {
       return this._render();
     } catch(e) {
       console.error("[TaskMateGraph] Render error:", e);
-      return html`<ha-card><div class="error-state"><ha-icon icon="mdi:alert-circle"></ha-icon><div>Graph error: ${e.message}</div></div></ha-card>`;
+      return html`<ha-card><div class="error-state"><ha-icon icon="mdi:alert-circle"></ha-icon><div>${this._t('graph.graph_error', { message: e.message })}</div></div></ha-card>`;
     }
   }
 
@@ -224,16 +229,16 @@ class TaskMateGraphCard extends LitElement {
 
     const entity = this.hass.states[this.config.entity];
     if (!entity) {
-      return html`<ha-card><div class="error-state"><ha-icon icon="mdi:alert-circle"></ha-icon><div>Entity not found: ${this.config.entity}</div></div></ha-card>`;
+      return html`<ha-card><div class="error-state"><ha-icon icon="mdi:alert-circle"></ha-icon><div>${this._t('common.entity_not_found', { entity: this.config.entity })}</div></div></ha-card>`;
     }
     if (entity.state === "unavailable" || entity.state === "unknown") {
-      return html`<ha-card><div class="error-state"><ha-icon icon="mdi:alert-circle"></ha-icon><div>TaskMate is unavailable</div></div></ha-card>`;
+      return html`<ha-card><div class="error-state"><ha-icon icon="mdi:alert-circle"></ha-icon><div>${this._t('common.unavailable')}</div></div></ha-card>`;
     }
 
     const tz = this.hass?.config?.time_zone || Intl.DateTimeFormat().resolvedOptions().timeZone;
     let children = entity.attributes.children || [];
     const pointsIcon = entity.attributes.points_icon || "mdi:star";
-    const pointsName = entity.attributes.points_name || "Points";
+    const pointsName = entity.attributes.points_name || this._t('common.points');
     const days = Math.max(3, Math.min(90, this.config.days || 14));
 
     // Filter to specific child if configured
@@ -267,7 +272,7 @@ class TaskMateGraphCard extends LitElement {
     });
 
     if (series.length === 0) {
-      return html`<ha-card><div class="empty-state"><ha-icon icon="mdi:account-group"></ha-icon><div>No children found</div></div></ha-card>`;
+      return html`<ha-card><div class="empty-state"><ha-icon icon="mdi:account-group"></ha-icon><div>${this._t('common.no_children')}</div></div></ha-card>`;
     }
 
     const dataKey = this._mode === "daily" ? "dailyPoints" : "cumulativePoints";
@@ -279,17 +284,17 @@ class TaskMateGraphCard extends LitElement {
         <div class="card-header">
           <div class="header-left">
             <ha-icon class="header-icon" icon="mdi:chart-line"></ha-icon>
-            <span class="header-title">${this.config.title}</span>
+            <span class="header-title">${this.config.title || this._t('graph.default_title')}</span>
           </div>
           <div class="mode-toggle">
             <button
               class="mode-btn ${this._mode === 'daily' ? 'active' : ''}"
               @click="${() => { this._mode = 'daily'; this.requestUpdate(); }}"
-            >Daily</button>
+            >${this._t('graph.daily')}</button>
             <button
               class="mode-btn ${this._mode === 'cumulative' ? 'active' : ''}"
               @click="${() => { this._mode = 'cumulative'; this.requestUpdate(); }}"
-            >Total</button>
+            >${this._t('graph.total')}</button>
           </div>
         </div>
 
@@ -310,8 +315,8 @@ class TaskMateGraphCard extends LitElement {
             : html`
               <div class="empty-state">
                 <ha-icon icon="mdi:chart-line-variant"></ha-icon>
-                <div class="message">No data yet</div>
-                <div class="submessage">Complete and approve chores to see the graph</div>
+                <div class="message">${this._t('graph.no_data_yet')}</div>
+                <div class="submessage">${this._t('graph.no_data_submessage')}</div>
               </div>
             `}
         </div>
@@ -603,8 +608,8 @@ class TaskMateGraphCard extends LitElement {
     const d = new Date(dateStr + "T12:00:00");
     const today = new Date().toLocaleDateString("en-CA");
     const yesterday = new Date(Date.now() - 86400000).toLocaleDateString("en-CA");
-    if (dateStr === today) return "Today";
-    if (dateStr === yesterday) return "Yesterday";
+    if (dateStr === today) return this._t('common.today');
+    if (dateStr === yesterday) return this._t('common.yesterday');
     return d.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
   }
 }
@@ -613,6 +618,11 @@ class TaskMateGraphCard extends LitElement {
 class TaskMateGraphCardEditor extends LitElement {
   static get properties() {
     return { hass: { type: Object }, config: { type: Object } };
+  }
+
+  _t(key, params) {
+    const fn = window.__taskmate_localize;
+    return fn ? fn(this.hass, key, params) : key;
   }
 
   static get styles() {
@@ -663,48 +673,48 @@ class TaskMateGraphCardEditor extends LitElement {
 
     return html`
       <ha-textfield
-        label="Overview Entity"
+        label="${this._t('common.editor.overview_entity')}"
         .value="${this.config.entity || ""}"
         @change="${e => this._updateConfig('entity', e.target.value)}"
-        helper="The TaskMate overview sensor entity"
+        helper="${this._t('common.editor.overview_entity_helper')}"
         helperPersistent
         placeholder="sensor.taskmate_overview"
       ></ha-textfield>
 
       <ha-textfield
-        label="Title"
+        label="${this._t('common.editor.card_title')}"
         .value="${this.config.title || ""}"
         @change="${e => this._updateConfig('title', e.target.value)}"
-        placeholder="Points Graph"
+        placeholder="${this._t('graph.default_title')}"
       ></ha-textfield>
 
       <ha-textfield
-        label="Days to show"
+        label="${this._t('graph.editor.days_to_show')}"
         type="number"
         .value="${String(this.config.days || 14)}"
         @change="${e => this._updateConfig('days', parseInt(e.target.value) || 14)}"
-        helper="Number of days to display (3–90)"
+        helper="${this._t('graph.editor.days_helper')}"
         helperPersistent
       ></ha-textfield>
 
       <div class="form-row">
-        <label class="form-label">Filter by Child (optional)</label>
+        <label class="form-label">${this._t('common.editor.filter_by_child')}</label>
         <select
           class="form-select"
           .value="${this.config.child_id || ""}"
           @change="${e => this._updateConfig('child_id', e.target.value || null)}"
         >
-          <option value="" ?selected="${!this.config.child_id}">All Children</option>
+          <option value="" ?selected="${!this.config.child_id}">${this._t('common.editor.filter_by_child_all')}</option>
           ${children.map(c => html`
             <option value="${c.id}" ?selected="${this.config.child_id === c.id}">${c.name}</option>
           `)}
         </select>
-        <span class="form-helper">Show one child's line or all children together</span>
+        <span class="form-helper">${this._t('graph.editor.child_filter_helper')}</span>
       </div>
-        <span class="field-helper">Card header background colour</span>
+        <span class="field-helper">${this._t('common.editor.header_colour_helper')}</span>
       </div>
       <div class="field-row">
-        <label class="field-label">Header Colour</label>
+        <label class="field-label">${this._t('common.editor.header_colour')}</label>
         <div style="display:flex;align-items:center;gap:10px;">
           <input
             type="color"
@@ -716,9 +726,9 @@ class TaskMateGraphCardEditor extends LitElement {
           <button
             style="font-size:11px;color:var(--secondary-text-color);background:none;border:1px solid var(--divider-color,#e0e0e0);border-radius:4px;padding:3px 8px;cursor:pointer;"
             @click=${() => this._updateConfig('header_color', '#d35400')}
-          >Reset</button>
+          >${this._t('common.reset')}</button>
         </div>
-        <span class="field-helper">Card header background colour</span>
+        <span class="field-helper">${this._t('common.editor.header_colour_helper')}</span>
       </div>
     `;
   }

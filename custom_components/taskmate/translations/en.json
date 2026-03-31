@@ -177,7 +177,7 @@
         },
         "data_description": {
           "streak_reset_mode": "What happens to a streak when a day is missed",
-          "history_days": "How many days of chore completion history to retain (30–365)",
+          "history_days": "How many days of chore completion history to retain (30-365)",
           "weekend_multiplier": "Points multiplier on Saturdays and Sundays (1.0 = disabled, 2.0 = double points)",
           "streak_milestones_enabled": "Award bonus points when children hit streak milestones (3, 7, 14, 30, 60, 100 days)",
           "perfect_week_enabled": "Award bonus points when a child completes at least one chore every day for a full week",
@@ -346,6 +346,110 @@
         "claim_id": {
           "name": "Claim ID",
           "description": "The ID of the reward claim to reject"
+        }
+      }
+    },
+    "preview_sound": {
+      "name": "Preview Sound",
+      "description": "Preview a completion sound effect in the browser",
+      "fields": {
+        "sound": {
+          "name": "Sound",
+          "description": "The sound to preview"
+        }
+      }
+    },
+    "set_chore_order": {
+      "name": "Set Chore Order",
+      "description": "Set the display order of chores for a child",
+      "fields": {
+        "child_id": {
+          "name": "Child ID",
+          "description": "The ID of the child to set chore order for"
+        },
+        "chore_order": {
+          "name": "Chore Order",
+          "description": "Ordered list of chore IDs"
+        }
+      }
+    },
+    "add_penalty": {
+      "name": "Add Penalty",
+      "description": "Create a new penalty definition",
+      "fields": {
+        "name": {
+          "name": "Name",
+          "description": "The name of the penalty"
+        },
+        "points": {
+          "name": "Points",
+          "description": "The number of points to deduct when applied"
+        },
+        "description": {
+          "name": "Description",
+          "description": "Optional description of the penalty"
+        },
+        "icon": {
+          "name": "Icon",
+          "description": "MDI icon for the penalty"
+        },
+        "assigned_to": {
+          "name": "Assigned To",
+          "description": "List of child IDs this penalty applies to"
+        }
+      }
+    },
+    "update_penalty": {
+      "name": "Update Penalty",
+      "description": "Update an existing penalty definition",
+      "fields": {
+        "penalty_id": {
+          "name": "Penalty ID",
+          "description": "The ID of the penalty to update"
+        },
+        "name": {
+          "name": "Name",
+          "description": "New name for the penalty"
+        },
+        "points": {
+          "name": "Points",
+          "description": "New points value"
+        },
+        "description": {
+          "name": "Description",
+          "description": "New description"
+        },
+        "icon": {
+          "name": "Icon",
+          "description": "New icon"
+        },
+        "assigned_to": {
+          "name": "Assigned To",
+          "description": "New list of child IDs"
+        }
+      }
+    },
+    "remove_penalty": {
+      "name": "Remove Penalty",
+      "description": "Remove a penalty definition",
+      "fields": {
+        "penalty_id": {
+          "name": "Penalty ID",
+          "description": "The ID of the penalty to remove"
+        }
+      }
+    },
+    "apply_penalty": {
+      "name": "Apply Penalty",
+      "description": "Apply a penalty to a child, deducting points",
+      "fields": {
+        "penalty_id": {
+          "name": "Penalty ID",
+          "description": "The ID of the penalty to apply"
+        },
+        "child_id": {
+          "name": "Child ID",
+          "description": "The ID of the child to apply the penalty to"
         }
       }
     }

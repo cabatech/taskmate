@@ -25,6 +25,11 @@ class TaskMateReorderCard extends LitElement {
     };
   }
 
+  _t(key, params) {
+    const fn = window.__taskmate_localize;
+    return fn ? fn(this.hass, key, params) : key;
+  }
+
   constructor() {
     super();
     this._saving = false;
@@ -455,7 +460,7 @@ class TaskMateReorderCard extends LitElement {
         <ha-card>
           <div class="error-state">
             <ha-icon icon="mdi:alert-circle"></ha-icon>
-            <div>TaskMate is unavailable</div>
+            <div>${this._t('common.unavailable')}</div>
           </div>
         </ha-card>
       `;
@@ -541,14 +546,14 @@ class TaskMateReorderCard extends LitElement {
   }
 
   _getTimeCategoryLabel(category) {
-    const labels = {
-      morning: "Morning",
-      afternoon: "Afternoon",
-      evening: "Evening",
-      night: "Night",
-      anytime: "Anytime",
+    const keys = {
+      morning: 'common.morning',
+      afternoon: 'common.afternoon',
+      evening: 'common.evening',
+      night: 'common.night',
+      anytime: 'common.anytime',
     };
-    return labels[category] || category;
+    return keys[category] ? this._t(keys[category]) : category;
   }
 
   render() {
@@ -563,7 +568,7 @@ class TaskMateReorderCard extends LitElement {
         <ha-card>
           <div class="error-state">
             <ha-icon icon="mdi:alert-circle"></ha-icon>
-            <div>Entity not found: ${this.config.entity}</div>
+            <div>${this._t('common.entity_not_found', { entity: this.config.entity })}</div>
           </div>
         </ha-card>
       `;
@@ -577,7 +582,7 @@ class TaskMateReorderCard extends LitElement {
         <ha-card>
           <div class="error-state">
             <ha-icon icon="mdi:account-alert"></ha-icon>
-            <div>Child not found: ${this.config.child_id}</div>
+            <div>${this._t('reorder.child_not_found', { child_id: this.config.child_id })}</div>
           </div>
         </ha-card>
       `;
@@ -598,8 +603,8 @@ class TaskMateReorderCard extends LitElement {
           </div>
           <div class="empty-state">
             <ha-icon icon="mdi:clipboard-text-off"></ha-icon>
-            <div class="message">No chores assigned</div>
-            <div class="submessage">Add chores to this child first</div>
+            <div class="message">${this._t('reorder.no_chores_assigned')}</div>
+            <div class="submessage">${this._t('reorder.add_chores_first')}</div>
           </div>
         </ha-card>
       `;
@@ -623,7 +628,7 @@ class TaskMateReorderCard extends LitElement {
             ?disabled="${this._saving || !this._hasChanges}"
           >
             <ha-icon icon="${this._saving ? "mdi:loading" : "mdi:content-save"}"></ha-icon>
-            ${this._saving ? "Saving..." : "Save Order"}
+            ${this._saving ? this._t('reorder.saving') : this._t('reorder.save_order')}
           </button>
         </div>
 
@@ -631,7 +636,7 @@ class TaskMateReorderCard extends LitElement {
         ${this._hasChanges
           ? html`
               <div class="status-bar">
-                <span class="status-text unsaved">You have unsaved changes</span>
+                <span class="status-text unsaved">${this._t('reorder.unsaved_changes')}</span>
               </div>
             `
           : ""}
@@ -658,7 +663,7 @@ class TaskMateReorderCard extends LitElement {
               <div class="time-category-header">
                 <ha-icon icon="${this._getTimeCategoryIcon(category)}"></ha-icon>
                 ${this._getTimeCategoryLabel(category)}
-                <span class="count">${allCategoryChores.length} chore${allCategoryChores.length !== 1 ? "s" : ""}</span>
+                <span class="count">${allCategoryChores.length !== 1 ? this._t('reorder.chore_count_plural', { count: allCategoryChores.length }) : this._t('reorder.chore_count', { count: allCategoryChores.length })}</span>
               </div>
               <div class="chores-list">
                 ${allCategoryChores.map((chore, index) =>
@@ -692,7 +697,7 @@ class TaskMateReorderCard extends LitElement {
         @touchmove="${(e) => this._onTouchMove(e)}"
         @touchend="${(e) => this._onTouchEnd(e, category)}"
       >
-        <div class="drag-handle" title="Drag to reorder">
+        <div class="drag-handle" title="${this._t('reorder.drag_to_reorder')}">
           <ha-icon icon="mdi:drag-vertical"></ha-icon>
         </div>
         <span class="order-number">${index + 1}</span>
@@ -701,7 +706,7 @@ class TaskMateReorderCard extends LitElement {
           <span class="chore-name">${chore.name}</span>
           <span class="chore-points">
             <ha-icon icon="${pointsIcon}"></ha-icon>
-            ${chore.points} points
+            ${chore.points} ${this._t('common.points').toLowerCase()}
           </span>
         </div>
         <div class="reorder-buttons">
@@ -709,7 +714,7 @@ class TaskMateReorderCard extends LitElement {
             class="reorder-button"
             @click="${() => this._moveChore(category, index, -1)}"
             ?disabled="${isFirst}"
-            title="Move up"
+            title="${this._t('reorder.move_up')}"
           >
             <ha-icon icon="mdi:arrow-up"></ha-icon>
           </button>
@@ -717,7 +722,7 @@ class TaskMateReorderCard extends LitElement {
             class="reorder-button"
             @click="${() => this._moveChore(category, index, 1)}"
             ?disabled="${isLast}"
-            title="Move down"
+            title="${this._t('reorder.move_down')}"
           >
             <ha-icon icon="mdi:arrow-down"></ha-icon>
           </button>
@@ -851,8 +856,8 @@ class TaskMateReorderCard extends LitElement {
       // Show success feedback
       if (this.hass.callService) {
         this.hass.callService("persistent_notification", "create", {
-          title: "Chore Order Saved",
-          message: "The chore order has been updated successfully.",
+          title: this._t('reorder.notification.save_success_title'),
+          message: this._t('reorder.notification.save_success_message'),
           notification_id: "taskmate_reorder_success",
         });
 
@@ -867,8 +872,8 @@ class TaskMateReorderCard extends LitElement {
       console.error("Failed to save chore order:", error);
       if (this.hass.callService) {
         this.hass.callService("persistent_notification", "create", {
-          title: "Error Saving Order",
-          message: `Failed to save chore order: ${error.message}`,
+          title: this._t('reorder.notification.save_error_title'),
+          message: this._t('reorder.notification.save_error_message', { error: error.message }),
           notification_id: "taskmate_reorder_error",
         });
       }
@@ -915,31 +920,31 @@ class TaskMateReorderCardEditor extends LitElement {
     const children = entity?.attributes?.children || [];
     return html`
       <ha-textfield
-        label="Overview Entity"
+        label="${this._t('common.editor.overview_entity')}"
         .value="${this.config.entity || ""}"
         @change="${this._entityChanged}"
-        helper="The TaskMate overview sensor entity"
+        helper="${this._t('common.editor.overview_entity_helper')}"
         helperPersistent
         placeholder="sensor.taskmate_overview"
       ></ha-textfield>
       <div class="form-row">
-        <label class="form-label">Child</label>
+        <label class="form-label">${this._t('reorder.editor.child')}</label>
         <select class="form-select" @change="${this._childIdChanged}">
-          <option value="" ?selected="${!this.config.child_id}">Select a child...</option>
+          <option value="" ?selected="${!this.config.child_id}">${this._t('reorder.editor.select_child')}</option>
           ${children.map(c => html`<option value="${c.id}" ?selected="${this.config.child_id === c.id}">${c.name}</option>`)}
         </select>
-        <span class="form-helper">Which child to manage chore order for</span>
+        <span class="form-helper">${this._t('reorder.editor.child_helper')}</span>
       </div>
       <ha-textfield
-        label="Card Title"
+        label="${this._t('common.editor.card_title')}"
         .value="${this.config.title || ""}"
         @change="${this._titleChanged}"
         placeholder="Reorder Chores"
       ></ha-textfield>
-        <span class="field-helper">Card header background colour</span>
+        <span class="field-helper">${this._t('common.editor.header_colour_helper')}</span>
       </div>
       <div class="field-row">
-        <label class="field-label">Header Colour</label>
+        <label class="field-label">${this._t('common.editor.header_colour')}</label>
         <div style="display:flex;align-items:center;gap:10px;">
           <input
             type="color"
@@ -951,11 +956,16 @@ class TaskMateReorderCardEditor extends LitElement {
           <button
             style="font-size:11px;color:var(--secondary-text-color);background:none;border:1px solid var(--divider-color,#e0e0e0);border-radius:4px;padding:3px 8px;cursor:pointer;"
             @click=${() => this._updateConfig('header_color', '#16a085')}
-          >Reset</button>
+          >${this._t('common.reset')}</button>
         </div>
-        <span class="field-helper">Card header background colour</span>
+        <span class="field-helper">${this._t('common.editor.header_colour_helper')}</span>
       </div>
     `;
+  }
+
+  _t(key, params) {
+    const fn = window.__taskmate_localize;
+    return fn ? fn(this.hass, key, params) : key;
   }
 
   _entityChanged(e) { this._updateConfig("entity", e.target.value); }

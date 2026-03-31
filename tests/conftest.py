@@ -129,8 +129,7 @@ sys.modules.update(
         # Stub the frontend sub-module so __init__.py's relative import succeeds
         # without executing frontend.py (which has its own heavy HA dependencies).
         "custom_components.taskmate.frontend": MagicMock(),
-        # voluptuous is used by __init__.py for service schemas
-        "voluptuous": MagicMock(),
+        # Note: voluptuous is NOT mocked — let real schema validation run in tests
     }
 )
 
@@ -143,14 +142,6 @@ sys.modules.update(
 def hass():
     """Return a fresh FakeHass instance."""
     return FakeHass()
-
-
-@pytest.fixture
-def event_loop():
-    """Provide a fresh asyncio event loop per test."""
-    loop = asyncio.new_event_loop()
-    yield loop
-    loop.close()
 
 
 def run_async(coro, loop=None):

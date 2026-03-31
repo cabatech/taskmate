@@ -47,6 +47,11 @@ class TaskMateChildCard extends LitElement {
     this._audioContext = null;
   }
 
+  _t(key, params) {
+    const fn = window.__taskmate_localize;
+    return fn ? fn(this.hass, key, params) : key;
+  }
+
   /**
    * Get or create the AudioContext (lazy initialization)
    * Must be called after user interaction due to browser autoplay policies
@@ -1108,7 +1113,7 @@ class TaskMateChildCard extends LitElement {
 
   setConfig(config) {
     if (!config.entity) {
-      throw new Error("Please define an entity (taskmate overview sensor)");
+      throw new Error("Please define an entity");
     }
     if (!config.child_id) {
       throw new Error("Please define a child_id");
@@ -1155,7 +1160,7 @@ class TaskMateChildCard extends LitElement {
         <ha-card>
           <div class="error-state">
             <ha-icon icon="mdi:alert-circle"></ha-icon>
-            <div>Entity not found: ${this.config.entity}</div>
+            <div>${this._t('common.entity_not_found', { entity: this.config.entity })}</div>
           </div>
         </ha-card>
       `;
@@ -1170,7 +1175,7 @@ class TaskMateChildCard extends LitElement {
         <ha-card>
           <div class="error-state">
             <ha-icon icon="mdi:account-alert"></ha-icon>
-            <div>Child not found: ${this.config.child_id}</div>
+            <div>${this._t('child.child_not_found', { child_id: this.config.child_id })}</div>
           </div>
         </ha-card>
       `;
@@ -1206,7 +1211,7 @@ class TaskMateChildCard extends LitElement {
     };
 
     const pointsIcon = entity.attributes.points_icon || "mdi:star";
-    const pointsName = entity.attributes.points_name || "Stars";
+    const pointsName = entity.attributes.points_name || this._t('common.stars');
 
     // Avatar now in children array directly
     const avatar = child.avatar || "mdi:account-circle";
@@ -1252,7 +1257,7 @@ class TaskMateChildCard extends LitElement {
                     <ha-icon icon="mdi:timer-sand"></ha-icon>
                     +${pendingPoints}
                   </div>
-                  <div class="stars-label waiting-stars">Pending</div>
+                  <div class="stars-label waiting-stars">${this._t('common.pending')}</div>
                 </div>
               ` : ''}
             </div>
@@ -1400,28 +1405,28 @@ class TaskMateChildCard extends LitElement {
   }
 
   _getTimeCategoryLabel(category) {
-    const labels = {
-      morning: "Morning",
-      afternoon: "Afternoon",
-      evening: "Evening",
-      night: "Night",
-      anytime: "Anytime",
-      all: "All",
+    const keyMap = {
+      morning: 'common.morning',
+      afternoon: 'common.afternoon',
+      evening: 'common.evening',
+      night: 'common.night',
+      anytime: 'common.anytime',
+      all: 'common.all',
     };
-    return labels[category] || category;
+    return keyMap[category] ? this._t(keyMap[category]) : category;
   }
 
   _getDynamicTitle() {
     const category = this.config.time_category;
-    const titles = {
-      morning: "Morning Chores",
-      afternoon: "Afternoon Chores",
-      evening: "Evening Chores",
-      night: "Night Chores",
-      anytime: "Today's Chores",
-      all: "Today's Chores",
+    const keyMap = {
+      morning: 'child.morning_chores',
+      afternoon: 'child.afternoon_chores',
+      evening: 'child.evening_chores',
+      night: 'child.night_chores',
+      anytime: 'child.todays_chores',
+      all: 'child.todays_chores',
     };
-    return titles[category] || "Today's Chores";
+    return keyMap[category] ? this._t(keyMap[category]) : this._t('child.todays_chores');
   }
 
   _getTimezone() {
@@ -1511,11 +1516,11 @@ class TaskMateChildCard extends LitElement {
     const soon = totalMins <= 60; // less than 1 hour
     let label;
     if (hours > 0) {
-      label = `Chores reset in ${hours}h ${mins}m`;
+      label = this._t('child.chores_reset_hours_mins', { hours, mins });
     } else if (mins > 0) {
-      label = `Chores reset in ${mins}m`;
+      label = this._t('child.chores_reset_mins', { mins });
     } else {
-      label = "Chores resetting soon!";
+      label = this._t('child.chores_resetting_soon');
     }
     return { label, soon };
   }
@@ -1524,8 +1529,8 @@ class TaskMateChildCard extends LitElement {
     return html`
       <div class="empty-state">
         <ha-icon icon="mdi:party-popper"></ha-icon>
-        <div class="message">All Done!</div>
-        <div class="submessage">No chores right now. Great job!</div>
+        <div class="message">${this._t('child.all_done')}</div>
+        <div class="submessage">${this._t('child.no_chores_right_now')}</div>
       </div>
     `;
   }
@@ -1609,7 +1614,7 @@ class TaskMateChildCard extends LitElement {
       <div
         class="chore-card ${isLoading ? "loading" : ""} ${isCelebrating ? "celebrating" : ""} ${isCompletedForToday ? "completed" : ""} ${notDueToday ? "not-due-today" : ""} ${notAvailableRecurrence ? "recurrence-unavailable" : ""} ${timeElapsed ? "time-elapsed" : ""}"
         @click="${handleRowClick}"
-        title="${notDueToday ? 'Not scheduled for today' : timeElapsed ? 'Time has passed for this chore' : isCompletedForToday ? 'Click to undo' : 'Click to complete'}"
+        title="${notDueToday ? this._t('child.not_scheduled_for_today') : timeElapsed ? this._t('child.time_has_passed') : isCompletedForToday ? this._t('child.click_to_undo') : this._t('child.click_to_complete')}"
       >
         <div class="chore-info">
           <div class="chore-number-wrapper">
@@ -1623,7 +1628,7 @@ class TaskMateChildCard extends LitElement {
             ${chore._isRecurring && !chore._isAvailableForChild ? html`
               <div class="recurrence-label">
                 <ha-icon icon="mdi:clock-outline"></ha-icon>
-                ${chore.recurrence ? chore.recurrence.replace(/_/g, ' ') : 'Recurring'}
+                ${chore.recurrence ? chore.recurrence.replace(/_/g, ' ') : this._t('child.recurring')}
               </div>
             ` : ''}
             <div class="chore-points">
@@ -1654,8 +1659,8 @@ class TaskMateChildCard extends LitElement {
       <div class="celebration-overlay" @click="${this._closeCelebration}">
         <div class="celebration-content" @click="${(e) => e.stopPropagation()}">
           <div class="celebration-stars">&#127775;&#127775;&#127775;</div>
-          <div class="celebration-title">AWESOME!</div>
-          <div class="celebration-message">You did it! Keep up the great work!</div>
+          <div class="celebration-title">${this._t('child.celebration_title')}</div>
+          <div class="celebration-message">${this._t('child.celebration_message')}</div>
           <div class="celebration-points">
             <ha-icon icon="${pointsIcon}"></ha-icon>
             +${points}
@@ -1788,8 +1793,8 @@ class TaskMateChildCard extends LitElement {
       // Show error notification
       if (this.hass.callService) {
         this.hass.callService("persistent_notification", "create", {
-          title: "Oops!",
-          message: `Something went wrong: ${error.message}`,
+          title: this._t('child.error_title'),
+          message: this._t('child.error_complete', { message: error.message }),
           notification_id: `taskmate_error_${chore.id}`,
         });
       }
@@ -1845,8 +1850,8 @@ class TaskMateChildCard extends LitElement {
       // Show error notification
       if (this.hass.callService) {
         this.hass.callService("persistent_notification", "create", {
-          title: "Oops!",
-          message: `Couldn't undo: ${error.message}`,
+          title: this._t('child.error_title'),
+          message: this._t('child.error_undo', { message: error.message }),
           notification_id: `taskmate_undo_error_${chore.id}`,
         });
       }
@@ -1888,6 +1893,11 @@ class TaskMateChildCardEditor extends LitElement {
       hass: { type: Object },
       config: { type: Object },
     };
+  }
+
+  _t(key, params) {
+    const fn = window.__taskmate_localize;
+    return fn ? fn(this.hass, key, params) : key;
   }
 
   static get styles() {
@@ -1996,66 +2006,66 @@ class TaskMateChildCardEditor extends LitElement {
 
     return html`
       <ha-textfield
-        label="Overview Entity"
+        label="${this._t('common.editor.overview_entity')}"
         .value="${this.config.entity || ''}"
         @change="${this._entityChanged}"
-        helper="The TaskMate overview sensor entity"
+        helper="${this._t('common.editor.overview_entity_helper')}"
         helperPersistent
         placeholder="sensor.taskmate_overview"
       ></ha-textfield>
 
       <div class="field-row">
-        <label class="field-label">Child</label>
+        <label class="field-label">${this._t('child.editor.child')}</label>
         <select class="field-select" @change="${this._childIdChanged}">
-          <option value="">Select a child...</option>
+          <option value="">${this._t('child.editor.select_child')}</option>
           ${children.map(child => html`
             <option value="${child.id}" ?selected="${this.config.child_id === child.id}">${child.name}</option>
           `)}
         </select>
-        <span class="field-helper">Which child is this card for?</span>
+        <span class="field-helper">${this._t('child.editor.child_helper')}</span>
       </div>
 
       <div class="field-row">
-        <label class="field-label">Time Category</label>
+        <label class="field-label">${this._t('child.editor.time_category')}</label>
         <select class="field-select" @change="${this._timeCategoryChanged}">
-          <option value="morning" ?selected="${this.config.time_category === 'morning'}">Morning Chores</option>
-          <option value="afternoon" ?selected="${this.config.time_category === 'afternoon'}">Afternoon Chores</option>
-          <option value="evening" ?selected="${this.config.time_category === 'evening'}">Evening Chores</option>
-          <option value="night" ?selected="${this.config.time_category === 'night'}">Night Chores</option>
-          <option value="anytime" ?selected="${this.config.time_category === 'anytime'}">Today's Chores (Anytime)</option>
-          <option value="all" ?selected="${this.config.time_category === 'all'}">Today's Chores (All)</option>
+          <option value="morning" ?selected="${this.config.time_category === 'morning'}">${this._t('child.editor.time_category_morning')}</option>
+          <option value="afternoon" ?selected="${this.config.time_category === 'afternoon'}">${this._t('child.editor.time_category_afternoon')}</option>
+          <option value="evening" ?selected="${this.config.time_category === 'evening'}">${this._t('child.editor.time_category_evening')}</option>
+          <option value="night" ?selected="${this.config.time_category === 'night'}">${this._t('child.editor.time_category_night')}</option>
+          <option value="anytime" ?selected="${this.config.time_category === 'anytime'}">${this._t('child.editor.time_category_anytime')}</option>
+          <option value="all" ?selected="${this.config.time_category === 'all'}">${this._t('child.editor.time_category_all')}</option>
         </select>
-        <span class="field-helper">Which time of day to show chores for — also sets the card title</span>
+        <span class="field-helper">${this._t('child.editor.time_category_helper')}</span>
       </div>
 
       <div class="field-row">
-        <label class="field-label">Chores Not Due Today</label>
+        <label class="field-label">${this._t('child.editor.chores_not_due_today')}</label>
         <select class="field-select" @change="${e => this._updateConfig('due_days_mode', e.target.value)}">
-          <option value="hide" ?selected="${(this.config.due_days_mode || 'hide') === 'hide'}">Hide — don't show</option>
-          <option value="dim" ?selected="${this.config.due_days_mode === 'dim'}">Dim — show greyed out, non-interactive</option>
-          <option value="show" ?selected="${this.config.due_days_mode === 'show'}">Show — show normally regardless</option>
+          <option value="hide" ?selected="${(this.config.due_days_mode || 'hide') === 'hide'}">${this._t('child.editor.due_days_hide')}</option>
+          <option value="dim" ?selected="${this.config.due_days_mode === 'dim'}">${this._t('child.editor.due_days_dim')}</option>
+          <option value="show" ?selected="${this.config.due_days_mode === 'show'}">${this._t('child.editor.due_days_show')}</option>
         </select>
-        <span class="field-helper">Applies to chores with due_days set when today isn't scheduled</span>
+        <span class="field-helper">${this._t('child.editor.due_days_helper')}</span>
       </div>
 
       <div class="field-row">
-        <label class="field-label">Recurring Chores — When Completed</label>
+        <label class="field-label">${this._t('child.editor.recurring_when_completed')}</label>
         <select class="field-select" @change="${e => this._updateConfig('recurrence_done_mode', e.target.value)}">
-          <option value="dim" ?selected="${(this.config.recurrence_done_mode || 'dim') === 'dim'}">Dim — show greyed out, non-interactive</option>
-          <option value="hide" ?selected="${this.config.recurrence_done_mode === 'hide'}">Hide — don't show until available again</option>
-          <option value="show" ?selected="${this.config.recurrence_done_mode === 'show'}">Show — show normally regardless</option>
+          <option value="dim" ?selected="${(this.config.recurrence_done_mode || 'dim') === 'dim'}">${this._t('child.editor.recurrence_dim')}</option>
+          <option value="hide" ?selected="${this.config.recurrence_done_mode === 'hide'}">${this._t('child.editor.recurrence_hide')}</option>
+          <option value="show" ?selected="${this.config.recurrence_done_mode === 'show'}">${this._t('child.editor.recurrence_show')}</option>
         </select>
-        <span class="field-helper">What to show when a recurring chore has been completed and the window hasn't reset yet</span>
+        <span class="field-helper">${this._t('child.editor.recurrence_helper')}</span>
       </div>
 
       <div class="field-row">
-        <label class="field-label">Missed Time-of-Day Chores</label>
+        <label class="field-label">${this._t('child.editor.missed_time_chores')}</label>
         <select class="field-select" @change="${e => this._updateConfig('elapsed_time_mode', e.target.value)}">
-          <option value="dim" ?selected="${(this.config.elapsed_time_mode || 'dim') === 'dim'}">Dim — show greyed out, non-interactive</option>
-          <option value="hide" ?selected="${this.config.elapsed_time_mode === 'hide'}">Hide — don't show</option>
-          <option value="show" ?selected="${this.config.elapsed_time_mode === 'show'}">Show — show normally regardless</option>
+          <option value="dim" ?selected="${(this.config.elapsed_time_mode || 'dim') === 'dim'}">${this._t('child.editor.elapsed_dim')}</option>
+          <option value="hide" ?selected="${this.config.elapsed_time_mode === 'hide'}">${this._t('child.editor.elapsed_hide')}</option>
+          <option value="show" ?selected="${this.config.elapsed_time_mode === 'show'}">${this._t('child.editor.elapsed_show')}</option>
         </select>
-        <span class="field-helper">What to show when a morning/afternoon/evening/night chore wasn't completed and that time has passed</span>
+        <span class="field-helper">${this._t('child.editor.elapsed_helper')}</span>
       </div>
 
       <div class="section-divider"></div>
@@ -2065,7 +2075,7 @@ class TaskMateChildCardEditor extends LitElement {
           ?checked="${this.config.show_countdown !== false}"
           @change="${e => this._updateConfig('show_countdown', e.target.checked)}"
         />
-        <span class="check-label">Show reset countdown beside "Today's Chores"</span>
+        <span class="check-label">${this._t('child.editor.show_countdown')}</span>
       </label>
 
       <label class="check-row">
@@ -2073,7 +2083,7 @@ class TaskMateChildCardEditor extends LitElement {
           ?checked="${this.config.show_description === true}"
           @change="${e => this._updateConfig('show_description', e.target.checked)}"
         />
-        <span class="check-label">Show chore description</span>
+        <span class="check-label">${this._t('child.editor.show_description')}</span>
       </label>
 
       <label class="check-row">
@@ -2081,12 +2091,12 @@ class TaskMateChildCardEditor extends LitElement {
           ?checked="${this.config.debug === true}"
           @change="${this._debugChanged}"
         />
-        <span class="check-label">Show debug panel</span>
+        <span class="check-label">${this._t('child.editor.show_debug')}</span>
       </label>
-        <span class="field-helper">Card header background colour</span>
+        <span class="field-helper">${this._t('common.editor.header_colour_helper')}</span>
       </div>
       <div class="field-row">
-        <label class="field-label">Header Colour</label>
+        <label class="field-label">${this._t('common.editor.header_colour')}</label>
         <div style="display:flex;align-items:center;gap:10px;">
           <input
             type="color"
@@ -2098,9 +2108,9 @@ class TaskMateChildCardEditor extends LitElement {
           <button
             style="font-size:11px;color:var(--secondary-text-color);background:none;border:1px solid var(--divider-color,#e0e0e0);border-radius:4px;padding:3px 8px;cursor:pointer;"
             @click=${() => this._updateConfig('header_color', '#9b59b6')}
-          >Reset</button>
+          >${this._t('common.reset')}</button>
         </div>
-        <span class="field-helper">Card header background colour</span>
+        <span class="field-helper">${this._t('common.editor.header_colour_helper')}</span>
       </div>
     `;
   }

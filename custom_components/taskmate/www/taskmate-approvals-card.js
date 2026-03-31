@@ -24,6 +24,11 @@ class TaskMateApprovalsCard extends LitElement {
     this._loading = {};
   }
 
+  _t(key, params) {
+    const fn = window.__taskmate_localize;
+    return fn ? fn(this.hass, key, params) : key;
+  }
+
   static get styles() {
     return css`
       :host {
@@ -298,7 +303,7 @@ class TaskMateApprovalsCard extends LitElement {
       throw new Error("Please define an entity (pending_approvals sensor)");
     }
     this.config = {
-      title: "Pending Approvals",
+      title: "",
       header_color: '#27ae60',
       ...config,
     };
@@ -331,7 +336,7 @@ class TaskMateApprovalsCard extends LitElement {
         <ha-card>
           <div class="error-state">
             <ha-icon icon="mdi:alert-circle"></ha-icon>
-            <div>Entity not found: ${this.config.entity}</div>
+            <div>${this._t('common.entity_not_found', { entity: this.config.entity })}</div>
           </div>
         </ha-card>
       `;
@@ -348,7 +353,7 @@ class TaskMateApprovalsCard extends LitElement {
         <div class="card-header">
           <div class="header-left">
             <ha-icon class="header-icon" icon="mdi:check-circle-outline"></ha-icon>
-            <span class="card-title">${this.config.title}</span>
+            <span class="card-title">${this.config.title || this._t('approvals.default_title')}</span>
           </div>
           ${totalPending > 0 ? html`<span class="pending-count">${totalPending}</span>` : ""}
         </div>
@@ -463,9 +468,9 @@ class TaskMateApprovalsCard extends LitElement {
       dateParts.day === yesterdayParts.day;
 
     if (isToday) {
-      return "Today";
+      return this._t('common.today');
     } else if (isYesterday) {
-      return "Yesterday";
+      return this._t('common.yesterday');
     } else {
       return this._formatDateInTimezone(date, {
         month: "short",
@@ -486,14 +491,14 @@ class TaskMateApprovalsCard extends LitElement {
   }
 
   _getTimeCategoryLabel(category) {
-    const labels = {
-      morning: "Morning",
-      afternoon: "Afternoon",
-      evening: "Evening",
-      night: "Night",
-      anytime: "Anytime",
+    const keyMap = {
+      morning: 'common.morning',
+      afternoon: 'common.afternoon',
+      evening: 'common.evening',
+      night: 'common.night',
+      anytime: 'common.anytime',
     };
-    return labels[category] || category;
+    return keyMap[category] ? this._t(keyMap[category]) : category;
   }
 
   _getTimeCategoryOrder(category) {
@@ -511,8 +516,8 @@ class TaskMateApprovalsCard extends LitElement {
     return html`
       <div class="empty-state">
         <ha-icon icon="mdi:check-circle-outline"></ha-icon>
-        <div class="message">All caught up!</div>
-        <div class="submessage">No pending approvals</div>
+        <div class="message">${this._t('approvals.all_caught_up')}</div>
+        <div class="submessage">${this._t('approvals.no_pending_approvals')}</div>
       </div>
     `;
   }
@@ -559,7 +564,7 @@ class TaskMateApprovalsCard extends LitElement {
           <button
             class="action-button reject ${isLoading ? "loading" : ""}"
             @click="${() => this._handleReject(completion)}"
-            title="Reject"
+            title="${this._t('approvals.reject')}"
             ?disabled="${isLoading}"
           >
             <ha-icon icon="mdi:close"></ha-icon>
@@ -582,7 +587,7 @@ class TaskMateApprovalsCard extends LitElement {
           <button
             class="action-button approve ${isLoading ? "loading" : ""}"
             @click="${() => this._handleApprove(completion)}"
-            title="Approve"
+            title="${this._t('approvals.approve')}"
             ?disabled="${isLoading}"
           >
             <ha-icon icon="mdi:check"></ha-icon>
@@ -613,8 +618,8 @@ class TaskMateApprovalsCard extends LitElement {
       // Show error toast if available
       if (this.hass.callService) {
         this.hass.callService("persistent_notification", "create", {
-          title: "TaskMate Error",
-          message: `Failed to ${service.replace("_", " ")}: ${error.message}`,
+          title: this._t('approvals.error_title'),
+          message: this._t('approvals.error_failed_service', { service: service.replace("_", " "), message: error.message }),
           notification_id: `taskmate_error_${completionId}`,
         });
       }
@@ -632,6 +637,11 @@ class TaskMateApprovalsCardEditor extends LitElement {
       hass: { type: Object },
       config: { type: Object },
     };
+  }
+
+  _t(key, params) {
+    const fn = window.__taskmate_localize;
+    return fn ? fn(this.hass, key, params) : key;
   }
 
   static get styles() {
@@ -677,40 +687,40 @@ class TaskMateApprovalsCardEditor extends LitElement {
 
     return html`
       <div class="form-group">
-        <label>Entity</label>
+        <label>${this._t('common.entity')}</label>
         <input
           type="text"
           .value="${this.config.entity || ""}"
           @input="${this._entityChanged}"
           placeholder="sensor.pending_approvals"
         />
-        <small>The pending approvals sensor entity</small>
+        <small>${this._t('approvals.editor.entity_helper')}</small>
       </div>
 
       <div class="form-group">
-        <label>Title</label>
+        <label>${this._t('common.title')}</label>
         <input
           type="text"
           .value="${this.config.title || ""}"
           @input="${this._titleChanged}"
-          placeholder="Pending Approvals"
+          placeholder="${this._t('approvals.default_title')}"
         />
       </div>
 
       <div class="form-group">
-        <label>Child ID (optional)</label>
+        <label>${this._t('approvals.editor.child_id')}</label>
         <input
           type="text"
           .value="${this.config.child_id || ""}"
           @input="${this._childIdChanged}"
-          placeholder="Leave empty to show all children"
+          placeholder="${this._t('approvals.editor.child_id_placeholder')}"
         />
-        <small>Filter approvals to a specific child</small>
+        <small>${this._t('approvals.editor.child_id_helper')}</small>
       </div>
-        <small>Card header background colour</small>
+        <small>${this._t('common.editor.header_colour_helper')}</small>
       </div>
       <div class="field-row">
-        <label class="field-label">Header Colour</label>
+        <label class="field-label">${this._t('common.editor.header_colour')}</label>
         <div style="display:flex;align-items:center;gap:10px;">
           <input
             type="color"
@@ -722,9 +732,9 @@ class TaskMateApprovalsCardEditor extends LitElement {
           <button
             style="font-size:11px;color:var(--secondary-text-color);background:none;border:1px solid var(--divider-color,#e0e0e0);border-radius:4px;padding:3px 8px;cursor:pointer;"
             @click=${() => this._updateConfig('header_color', '#27ae60')}
-          >Reset</button>
+          >${this._t('common.reset')}</button>
         </div>
-        <span class="field-helper">Card header background colour</span>
+        <span class="field-helper">${this._t('common.editor.header_colour_helper')}</span>
       </div>
     `;
   }

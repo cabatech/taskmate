@@ -31,6 +31,11 @@ class TaskMateRewardsCard extends LitElement {
     this._selectedChildId = null;
   }
 
+  _t(key, params) {
+    const fn = window.__taskmate_localize;
+    return fn ? fn(this.hass, key, params) : key;
+  }
+
   static get styles() {
     return css`
       :host {
@@ -649,10 +654,10 @@ class TaskMateRewardsCard extends LitElement {
 
   setConfig(config) {
     if (!config.entity) {
-      throw new Error("Please define an entity (taskmate overview sensor)");
+      throw new Error(this._t('rewards.error.entity_required'));
     }
     this.config = {
-      title: "Rewards",
+      title: null,
       child_id: null, // Optional: filter rewards for a specific child
       show_child_badges: true, // Show which children can claim each reward
             header_color: '#e67e22',
@@ -689,7 +694,7 @@ class TaskMateRewardsCard extends LitElement {
         <ha-card>
           <div class="error-state">
             <ha-icon icon="mdi:alert-circle"></ha-icon>
-            <div>Entity not found: ${this.config.entity}</div>
+            <div>${this._t('common.entity_not_found', { entity: this.config.entity })}</div>
           </div>
         </ha-card>
       `;
@@ -733,10 +738,10 @@ class TaskMateRewardsCard extends LitElement {
         <div class="card-header">
           <div class="header-content">
             <ha-icon class="header-icon" icon="mdi:gift-outline"></ha-icon>
-            <span class="header-title">${this.config.title}</span>
+            <span class="header-title">${this.config.title || this._t('rewards.default_title')}</span>
           </div>
           ${rewards.length > 0
-            ? html`<span class="reward-count">${rewards.length} ${rewards.length === 1 ? "reward" : "rewards"}</span>`
+            ? html`<span class="reward-count">${rewards.length === 1 ? this._t('rewards.reward_count_singular', { count: rewards.length }) : this._t('rewards.reward_count_plural', { count: rewards.length })}</span>`
             : ""}
         </div>
 
@@ -753,8 +758,8 @@ class TaskMateRewardsCard extends LitElement {
     return html`
       <div class="empty-state">
         <ha-icon icon="mdi:gift-off-outline"></ha-icon>
-        <div class="message">No Rewards Available</div>
-        <div class="submessage">Add rewards in TaskMate settings</div>
+        <div class="message">${this._t('rewards.empty_title')}</div>
+        <div class="submessage">${this._t('rewards.empty_subtitle')}</div>
       </div>
     `;
   }
@@ -835,7 +840,7 @@ class TaskMateRewardsCard extends LitElement {
           <span class="cost-label">${pointsName}</span>
         </div>
         <div class="reward-details">
-          ${isJackpot ? html`<div class="jackpot-label"><span>&#127920;</span> JACKPOT</div>` : ''}
+          ${isJackpot ? html`<div class="jackpot-label"><span>&#127920;</span> ${this._t('rewards.jackpot')}</div>` : ''}
           <div class="reward-name">${reward.name}</div>
           ${hasDescription
             ? html`<div class="reward-description">${reward.description}</div>`
@@ -848,7 +853,7 @@ class TaskMateRewardsCard extends LitElement {
           ${hasPendingClaim ? html`
             <div class="pending-label">
               <ha-icon icon="mdi:clock-outline"></ha-icon>
-              Awaiting parent approval
+              ${this._t('rewards.awaiting_approval')}
             </div>
           ` : ''}
 
@@ -856,7 +861,7 @@ class TaskMateRewardsCard extends LitElement {
             ? html`
                 <div class="assigned-children">
                   ${assignedTo.length === 0
-                    ? html`<span class="child-badge all-children">All Children</span>`
+                    ? html`<span class="child-badge all-children">${this._t('rewards.all_children')}</span>`
                     : assignedTo.map(
                         (childId) =>
                           html`<span class="child-badge">${childMap[childId] || childId}</span>`
@@ -871,7 +876,7 @@ class TaskMateRewardsCard extends LitElement {
               class="claim-btn ${!canAfford ? 'cant-afford' : ''}"
               ?disabled="${!canAfford || isLoading}"
               @click="${(e) => { e.stopPropagation(); this._handleClaim(reward, relevantChild); }}"
-              title="${canAfford ? 'Claim reward' : 'Not enough points'}"
+              title="${canAfford ? this._t('rewards.claim_reward') : this._t('rewards.not_enough_points')}"
             >
               <ha-icon icon="${isLoading ? 'mdi:loading' : rewardIcon}"></ha-icon>
             </button>
@@ -998,6 +1003,11 @@ class TaskMateRewardsCardEditor extends LitElement {
     };
   }
 
+  _t(key, params) {
+    const fn = window.__taskmate_localize;
+    return fn ? fn(this.hass, key, params) : key;
+  }
+
   static get styles() {
     return css`
       .form-group {
@@ -1066,31 +1076,31 @@ class TaskMateRewardsCardEditor extends LitElement {
 
     return html`
       <div class="form-group">
-        <label>Entity</label>
+        <label>${this._t('rewards.editor.entity')}</label>
         <input
           type="text"
           .value="${this.config.entity || ""}"
           @input="${this._entityChanged}"
           placeholder="sensor.taskmate_overview"
         />
-        <small>The TaskMate overview sensor entity</small>
+        <small>${this._t('rewards.editor.entity_helper')}</small>
       </div>
 
       <div class="form-group">
-        <label>Title</label>
+        <label>${this._t('rewards.editor.title')}</label>
         <input
           type="text"
           .value="${this.config.title || ""}"
           @input="${this._titleChanged}"
           placeholder="Rewards"
         />
-        <small>Card title displayed in the header (default: "Rewards")</small>
+        <small>${this._t('rewards.editor.title_helper')}</small>
       </div>
 
       <div class="form-group">
-        <label>Filter by Child</label>
+        <label>${this._t('rewards.editor.filter_by_child')}</label>
         <select @change="${this._childIdChanged}">
-          <option value="" ?selected="${!this.config.child_id}">All Children</option>
+          <option value="" ?selected="${!this.config.child_id}">${this._t('rewards.editor.filter_by_child_all')}</option>
           ${children.map(
             (child) => html`
               <option value="${child.id}" ?selected="${this.config.child_id === child.id}">
@@ -1099,7 +1109,7 @@ class TaskMateRewardsCardEditor extends LitElement {
             `
           )}
         </select>
-        <small>Only show rewards available to this child (leave empty for all rewards)</small>
+        <small>${this._t('rewards.editor.filter_by_child_helper')}</small>
       </div>
 
       <div class="form-group">
@@ -1109,14 +1119,14 @@ class TaskMateRewardsCardEditor extends LitElement {
             ?checked="${this.config.show_child_badges !== false}"
             @change="${this._showChildBadgesChanged}"
           />
-          Show child assignment badges
+          ${this._t('rewards.editor.show_child_badges')}
         </label>
-        <small>Display which children can claim each reward</small>
+        <small>${this._t('rewards.editor.show_child_badges_helper')}</small>
       </div>
-        <span class="field-helper">Card header background colour</span>
+        <span class="field-helper">${this._t('common.editor.header_colour_helper')}</span>
       </div>
       <div class="field-row">
-        <label class="field-label">Header Colour</label>
+        <label class="field-label">${this._t('common.editor.header_colour')}</label>
         <div style="display:flex;align-items:center;gap:10px;">
           <input
             type="color"
@@ -1128,9 +1138,9 @@ class TaskMateRewardsCardEditor extends LitElement {
           <button
             style="font-size:11px;color:var(--secondary-text-color);background:none;border:1px solid var(--divider-color,#e0e0e0);border-radius:4px;padding:3px 8px;cursor:pointer;"
             @click=${() => this._updateConfig('header_color', '#e67e22')}
-          >Reset</button>
+          >${this._t('common.reset')}</button>
         </div>
-        <span class="field-helper">Card header background colour</span>
+        <span class="field-helper">${this._t('common.editor.header_colour_helper')}</span>
       </div>
     `;
   }

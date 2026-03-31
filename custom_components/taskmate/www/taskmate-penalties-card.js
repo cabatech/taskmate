@@ -28,6 +28,11 @@ class TaskMatePenaltiesCard extends LitElement {
     };
   }
 
+  _t(key, params) {
+    const fn = window.__taskmate_localize;
+    return fn ? fn(this.hass, key, params) : key;
+  }
+
   constructor() {
     super();
     this._selectedChildId = null;
@@ -391,7 +396,7 @@ class TaskMatePenaltiesCard extends LitElement {
         penalty_id: penalty.id,
         child_id: child.id,
       });
-      this._showToast(`-${penalty.points} ${this._getPointsName()} from ${child.name}`);
+      this._showToast(this._t('penalties.toast_applied', { points: penalty.points, pointsName: this._getPointsName(), childName: child.name }));
       // Flash the row
       const row = this.shadowRoot.querySelector(`[data-penalty-id="${penalty.id}"]`);
       if (row) {
@@ -399,7 +404,7 @@ class TaskMatePenaltiesCard extends LitElement {
         setTimeout(() => row.classList.remove("flashing"), 700);
       }
     } catch (e) {
-      this._showToast("Failed to apply penalty");
+      this._showToast(this._t('penalties.toast_apply_failed'));
     } finally {
       this._loading = { ...this._loading, [key]: false };
     }
@@ -435,7 +440,7 @@ class TaskMatePenaltiesCard extends LitElement {
       });
       this._editingPenalty = null;
     } catch (e) {
-      this._showToast("Failed to save changes");
+      this._showToast(this._t('penalties.toast_save_failed'));
     }
   }
 
@@ -443,7 +448,7 @@ class TaskMatePenaltiesCard extends LitElement {
     try {
       await this.hass.callService("taskmate", "remove_penalty", { penalty_id: id });
     } catch (e) {
-      this._showToast("Failed to delete penalty");
+      this._showToast(this._t('penalties.toast_delete_failed'));
     }
   }
 
@@ -464,7 +469,7 @@ class TaskMatePenaltiesCard extends LitElement {
       });
       this._showNewForm = false;
     } catch (e) {
-      this._showToast("Failed to add penalty");
+      this._showToast(this._t('penalties.toast_add_failed'));
     }
   }
 
@@ -506,10 +511,10 @@ class TaskMatePenaltiesCard extends LitElement {
 
         ${this._editMode ? html`
           <div class="edit-actions">
-            <button class="edit-btn" title="Edit" @click=${() => this._startEdit(p)}>
+            <button class="edit-btn" title="${this._t('penalties.btn_edit_title')}" @click=${() => this._startEdit(p)}>
               <ha-icon icon="mdi:pencil"></ha-icon>
             </button>
-            <button class="edit-btn delete" title="Delete" @click=${() => this._deletePenalty(p.id)}>
+            <button class="edit-btn delete" title="${this._t('penalties.btn_delete_title')}" @click=${() => this._deletePenalty(p.id)}>
               <ha-icon icon="mdi:trash-can-outline"></ha-icon>
             </button>
           </div>
@@ -519,7 +524,7 @@ class TaskMatePenaltiesCard extends LitElement {
                   @click=${() => this._applyPenalty(p)}>
             ${isLoading
               ? html`<ha-icon icon="mdi:loading" class="spin"></ha-icon>`
-              : html`<ha-icon icon="mdi:minus-circle-outline"></ha-icon> Apply`
+              : html`<ha-icon icon="mdi:minus-circle-outline"></ha-icon> ${this._t('common.apply')}`
             }
           </button>
         `}
@@ -534,33 +539,33 @@ class TaskMatePenaltiesCard extends LitElement {
       <div class="edit-form">
         <div class="form-row">
           <div class="form-field" style="flex:2">
-            <label>Name</label>
+            <label>${this._t('penalties.form_name_label')}</label>
             <input type="text" .value=${p.name}
               @input=${e => this._editingPenalty = { ...p, name: e.target.value }} />
           </div>
           <div class="form-field" style="flex:1">
-            <label>Points</label>
+            <label>${this._t('penalties.form_points_label')}</label>
             <input type="number" min="1" .value=${p.points}
               @input=${e => this._editingPenalty = { ...p, points: e.target.value }} />
           </div>
         </div>
         <div class="form-row">
           <div class="form-field">
-            <label>Icon (MDI)</label>
+            <label>${this._t('penalties.form_icon_label')}</label>
             <input type="text" .value=${p.icon || "mdi:alert-circle-outline"}
               @input=${e => this._editingPenalty = { ...p, icon: e.target.value }} />
           </div>
         </div>
         <div class="form-row full">
           <div class="form-field">
-            <label>Description (optional)</label>
+            <label>${this._t('penalties.form_description_label')}</label>
             <input type="text" .value=${p.description || ""}
               @input=${e => this._editingPenalty = { ...p, description: e.target.value }} />
           </div>
         </div>
         <div class="form-actions">
-          <button class="btn-cancel" @click=${this._cancelEdit}>Cancel</button>
-          <button class="btn-save" @click=${this._saveEdit}>Save</button>
+          <button class="btn-cancel" @click=${this._cancelEdit}>${this._t('common.cancel')}</button>
+          <button class="btn-save" @click=${this._saveEdit}>${this._t('common.save')}</button>
         </div>
       </div>
     `;
@@ -572,33 +577,33 @@ class TaskMatePenaltiesCard extends LitElement {
       <div class="edit-form">
         <div class="form-row">
           <div class="form-field" style="flex:2">
-            <label>Name</label>
-            <input type="text" placeholder="e.g. Not going to bed" .value=${f.name}
+            <label>${this._t('penalties.form_name_label')}</label>
+            <input type="text" placeholder="${this._t('penalties.form_name_placeholder')}" .value=${f.name}
               @input=${e => this._newForm = { ...f, name: e.target.value }} />
           </div>
           <div class="form-field" style="flex:1">
-            <label>Points</label>
+            <label>${this._t('penalties.form_points_label')}</label>
             <input type="number" min="1" placeholder="10" .value=${f.points}
               @input=${e => this._newForm = { ...f, points: e.target.value }} />
           </div>
         </div>
         <div class="form-row">
           <div class="form-field">
-            <label>Icon (MDI)</label>
+            <label>${this._t('penalties.form_icon_label')}</label>
             <input type="text" .value=${f.icon}
               @input=${e => this._newForm = { ...f, icon: e.target.value }} />
           </div>
         </div>
         <div class="form-row full">
           <div class="form-field">
-            <label>Description (optional)</label>
-            <input type="text" placeholder="Short description"
+            <label>${this._t('penalties.form_description_label')}</label>
+            <input type="text" placeholder="${this._t('penalties.form_description_placeholder')}"
               @input=${e => this._newForm = { ...f, description: e.target.value }} />
           </div>
         </div>
         <div class="form-actions">
-          <button class="btn-cancel" @click=${() => this._showNewForm = false}>Cancel</button>
-          <button class="btn-save" @click=${this._saveNew}>Add Penalty</button>
+          <button class="btn-cancel" @click=${() => this._showNewForm = false}>${this._t('common.cancel')}</button>
+          <button class="btn-save" @click=${this._saveNew}>${this._t('penalties.add_penalty')}</button>
         </div>
       </div>
     `;
@@ -616,13 +621,13 @@ class TaskMatePenaltiesCard extends LitElement {
         <div class="card-header">
           <div class="header-left">
             <ha-icon class="header-icon" icon="mdi:alert-circle-outline"></ha-icon>
-            <span class="header-title">${this.config.title || "Penalties"}</span>
+            <span class="header-title">${this.config.title || this._t('penalties.default_title')}</span>
           </div>
           <div class="header-actions">
             ${penalties.length ? html`
               <span class="penalty-count">${penalties.length}</span>
             ` : ""}
-            <button class="icon-btn ${this._editMode ? "active" : ""}" title="Manage penalties"
+            <button class="icon-btn ${this._editMode ? "active" : ""}" title="${this._t('penalties.manage_title')}"
                     @click=${() => { this._editMode = !this._editMode; this._editingPenalty = null; this._showNewForm = false; }}>
               <ha-icon icon="mdi:pencil"></ha-icon>
             </button>
@@ -635,8 +640,8 @@ class TaskMatePenaltiesCard extends LitElement {
           ${visible.length === 0 && !this._showNewForm ? html`
             <div class="empty-state">
               <ha-icon icon="mdi:alert-circle-outline"></ha-icon>
-              <div class="empty-title">No penalties yet</div>
-              <div class="empty-sub">Tap the pencil icon to add penalties</div>
+              <div class="empty-title">${this._t('penalties.empty_title')}</div>
+              <div class="empty-sub">${this._t('penalties.empty_sub')}</div>
             </div>
           ` : ""}
 
@@ -648,15 +653,14 @@ class TaskMatePenaltiesCard extends LitElement {
               : html`
                 <button class="add-penalty-btn" @click=${this._openNewForm}>
                   <ha-icon icon="mdi:plus"></ha-icon>
-                  New Penalty
+                  ${this._t('penalties.new_penalty')}
                 </button>
               `}
           ` : ""}
 
           ${child && !this._editMode ? html`
             <div style="text-align:center; font-size:0.8rem; color:var(--text-secondary); padding-top:4px;">
-              Applying to <strong>${child.name}</strong>
-              &mdash; current balance: <strong>${child.points} ${this._getPointsName()}</strong>
+              ${this._t('penalties.applying_to', { childName: child.name, points: child.points, pointsName: this._getPointsName() })}
             </div>
           ` : ""}
         </div>

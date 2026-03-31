@@ -11,7 +11,7 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from homeassistant.util import dt as dt_util
 
 from .const import DOMAIN
-from .models import Child, Chore, ChoreCompletion, Reward, RewardClaim, PointsTransaction
+from .models import Child, Chore, ChoreCompletion, Penalty, Reward, RewardClaim, PointsTransaction
 from .storage import TaskMateStorage
 
 _LOGGER = logging.getLogger(__name__)
@@ -101,10 +101,11 @@ class TaskMateCoordinator(DataUpdateCoordinator):
             if week_key in awarded_weeks:
                 continue
 
-            # Get all days this child had at least one approved completion last week
+            # Get all days this child had at least one completion last week
+            # (count both approved and pending — don't penalise for slow parent approval)
             completed_days = set()
             for comp in all_completions:
-                if comp.child_id != child.id or not comp.approved:
+                if comp.child_id != child.id:
                     continue
                 try:
                     comp_local = dt_util.as_local(comp.completed_at)
@@ -486,10 +487,10 @@ class TaskMateCoordinator(DataUpdateCoordinator):
         )
 
         if not chore.requires_approval:
-            await self._award_points(child, chore.points)
+            total_awarded = await self._award_points(child, chore.points)
             completion.approved = True
             completion.approved_at = dt_util.now()
-            completion.points_awarded = chore.points
+            completion.points_awarded = total_awarded
 
         self.storage.add_completion(completion)
 
@@ -514,18 +515,24 @@ class TaskMateCoordinator(DataUpdateCoordinator):
                 child = self.get_child(completion.child_id)
 
                 if chore and child:
+                    comp_date = dt_util.as_local(completion.completed_at).date()
+                    total_awarded = await self._award_points(child, chore.points, completion_date=comp_date)
                     completion.approved = True
                     completion.approved_at = dt_util.now()
-                    completion.points_awarded = chore.points
-                    comp_date = dt_util.as_local(completion.completed_at).date()
-                    await self._award_points(child, chore.points, completion_date=comp_date)
+                    completion.points_awarded = total_awarded
                     self.storage.update_completion(completion)
                     await self.storage.async_save()
                     await self.async_refresh()
+                else:
+                    _LOGGER.warning(
+                        "Cannot approve completion %s: chore (%s) or child (%s) not found",
+                        completion_id, completion.chore_id, completion.child_id,
+                    )
                 return
+        _LOGGER.warning("Completion %s not found for approval", completion_id)
 
     async def async_reject_chore(self, completion_id: str) -> None:
-        """Reject a chore completion and deduct points if they were already awarded."""
+        """Reject a chore completion and fully reverse all awards if already granted."""
         completions = self.storage.get_completions()
         target_completion = None
         for completion in completions:
@@ -534,9 +541,14 @@ class TaskMateCoordinator(DataUpdateCoordinator):
                 if completion.points_awarded > 0:
                     child = self.get_child(completion.child_id)
                     if child:
-                        child.points -= completion.points_awarded
-                        if child.points < 0:
-                            child.points = 0
+                        # Reverse base + weekend bonus points
+                        child.points = max(0, child.points - completion.points_awarded)
+                        child.total_points_earned = max(0, child.total_points_earned - completion.points_awarded)
+                        child.total_chores_completed = max(0, child.total_chores_completed - 1)
+
+                        # Reverse streak: decrement (but don't go below 0)
+                        child.current_streak = max(0, child.current_streak - 1)
+
                         self.storage.update_child(child)
                 break
 
@@ -582,7 +594,8 @@ class TaskMateCoordinator(DataUpdateCoordinator):
         await self.async_refresh()
 
     async def async_remove_reward(self, reward_id: str) -> None:
-        """Remove a reward."""
+        """Remove a reward and clean up any pending claims referencing it."""
+        self.storage.remove_reward_claims_for_reward(reward_id)
         self.storage.remove_reward(reward_id)
         await self.storage.async_save()
         await self.async_refresh()
@@ -654,11 +667,12 @@ class TaskMateCoordinator(DataUpdateCoordinator):
 
         # Calculate points already committed by pending (unapproved) claims
         pending_claims = self.storage.get_pending_reward_claims()
-        committed = sum(
-            self.get_reward(c.reward_id).cost
-            for c in pending_claims
-            if c.child_id == child_id and self.get_reward(c.reward_id)
-        )
+        committed = 0
+        for c in pending_claims:
+            if c.child_id == child_id:
+                pending_reward = self.get_reward(c.reward_id)
+                if pending_reward:
+                    committed += pending_reward.cost
         available_points = child.points - committed
 
         if available_points < effective_cost:
@@ -706,6 +720,7 @@ class TaskMateCoordinator(DataUpdateCoordinator):
                 await self.storage.async_save()
                 await self.async_refresh()
                 return
+        _LOGGER.warning("Reward claim %s not found for approval", claim_id)
 
     async def async_reject_reward(self, claim_id: str) -> None:
         """Reject a reward claim — no refund needed as points were never deducted."""
@@ -723,7 +738,6 @@ class TaskMateCoordinator(DataUpdateCoordinator):
         assigned_to: list | None = None,
     ):
         """Create a new penalty definition."""
-        from .models import Penalty
         penalty = Penalty(
             name=name,
             points=points,
@@ -836,12 +850,16 @@ class TaskMateCoordinator(DataUpdateCoordinator):
         child: Child,
         points: int,
         completion_date: date | None = None,
-    ) -> None:
-        """Award points to a child, update streak, and apply bonus systems."""
+    ) -> int:
+        """Award points to a child, update streak, and apply bonus systems.
+
+        Returns the total points awarded (base + weekend bonus), excluding
+        milestone bonuses (which are logged as separate transactions).
+        """
         now = dt_util.now()
         today = now.date()
         effective_date = completion_date or today
-        today_str = today.isoformat()
+        effective_date_str = effective_date.isoformat()
         last_date_str = getattr(child, 'last_completion_date', None)
 
         # ── Weekend multiplier ──────────────────────────────────────────────
@@ -883,12 +901,12 @@ class TaskMateCoordinator(DataUpdateCoordinator):
         if last_date_str is None:
             child.current_streak = 1
             child.streak_paused = False
-        elif last_date_str == today_str:
-            pass  # Already completed today — streak unchanged
+        elif last_date_str == effective_date_str:
+            pass  # Already completed on this date — streak unchanged
         else:
             try:
                 last_date = date.fromisoformat(last_date_str)
-                yesterday = today - timedelta(days=1)
+                yesterday = effective_date - timedelta(days=1)
                 if last_date == yesterday:
                     child.current_streak = streak_before + 1
                     child.streak_paused = False
@@ -904,7 +922,7 @@ class TaskMateCoordinator(DataUpdateCoordinator):
                 child.streak_paused = False
                 streak_reset_occurred = True
 
-        child.last_completion_date = today_str
+        child.last_completion_date = effective_date_str
 
         if child.current_streak > (child.best_streak or 0):
             child.best_streak = child.current_streak
@@ -950,6 +968,7 @@ class TaskMateCoordinator(DataUpdateCoordinator):
                 self.storage.add_points_transaction(transaction)
 
         self.storage.update_child(child)
+        return total_points
 
     async def async_prune_history(self, days: int = 90) -> None:
         """Prune completion history older than specified days."""

@@ -17,6 +17,11 @@ class TaskMateRewardProgressCard extends LitElement {
     return { hass: { type: Object }, config: { type: Object } };
   }
 
+  _t(key, params) {
+    const fn = window.__taskmate_localize;
+    return fn ? fn(this.hass, key, params) : key;
+  }
+
   static get styles() {
     return css`
       :host { display: block; }
@@ -351,9 +356,9 @@ class TaskMateRewardProgressCard extends LitElement {
   }
 
   setConfig(config) {
-    if (!config.entity) throw new Error("Please define an entity");
+    if (!config.entity) throw new Error(this._t('reward_progress.error.entity_required'));
     this.config = {
-      title: "Reward Goal",
+      title: null,
       reward_id: null,
       child_id: null,
             header_color: '#7d3c98',
@@ -371,8 +376,8 @@ class TaskMateRewardProgressCard extends LitElement {
     if (!this.hass || !this.config) return html``;
 
     const entity = this.hass.states[this.config.entity];
-    if (!entity) return html`<ha-card><div class="error-state"><ha-icon icon="mdi:alert-circle"></ha-icon><div>Entity not found: ${this.config.entity}</div></div></ha-card>`;
-    if (entity.state === "unavailable" || entity.state === "unknown") return html`<ha-card><div class="error-state"><ha-icon icon="mdi:alert-circle"></ha-icon><div>TaskMate unavailable</div></div></ha-card>`;
+    if (!entity) return html`<ha-card><div class="error-state"><ha-icon icon="mdi:alert-circle"></ha-icon><div>${this._t('common.entity_not_found', { entity: this.config.entity })}</div></div></ha-card>`;
+    if (entity.state === "unavailable" || entity.state === "unknown") return html`<ha-card><div class="error-state"><ha-icon icon="mdi:alert-circle"></ha-icon><div>${this._t('reward_progress.unavailable')}</div></div></ha-card>`;
 
     const rewards = entity.attributes.rewards || [];
     const children = entity.attributes.children || [];
@@ -384,7 +389,7 @@ class TaskMateRewardProgressCard extends LitElement {
       ? rewards.find(r => r.id === this.config.reward_id)
       : rewards[0];
 
-    if (!reward) return html`<ha-card><div class="empty-state"><ha-icon icon="mdi:gift-outline"></ha-icon><div>No rewards found</div></div></ha-card>`;
+    if (!reward) return html`<ha-card><div class="empty-state"><ha-icon icon="mdi:gift-outline"></ha-icon><div>${this._t('reward_progress.no_rewards')}</div></div></ha-card>`;
 
     // Which children to show
     let showChildren = children;
@@ -400,7 +405,7 @@ class TaskMateRewardProgressCard extends LitElement {
         <div class="card-header">
           <div class="header-content">
             <ha-icon class="header-icon" icon="mdi:trophy-outline"></ha-icon>
-            <span class="header-title">${this.config.title}</span>
+            <span class="header-title">${this.config.title || this._t('reward_progress.default_title')}</span>
           </div>
         </div>
         <div class="card-content">
@@ -413,7 +418,7 @@ class TaskMateRewardProgressCard extends LitElement {
             ${isJackpot ? html`
               <div class="jackpot-badge">
                 <ha-icon icon="mdi:star-shooting"></ha-icon>
-                Jackpot Reward
+                ${this._t('reward_progress.jackpot_reward')}
               </div>
             ` : ''}
           </div>
@@ -452,7 +457,7 @@ class TaskMateRewardProgressCard extends LitElement {
             </div>
           </div>
           <div class="child-progress-cost">
-            <div class="cost-label">Goal</div>
+            <div class="cost-label">${this._t('common.goal')}</div>
             <div class="cost-value">
               <ha-icon icon="${pointsIcon}"></ha-icon>
               ${cost}
@@ -467,8 +472,8 @@ class TaskMateRewardProgressCard extends LitElement {
           <div class="progress-stat-row">
             <span class="progress-have">${have} / ${cost} ${pointsName}</span>
             ${canAfford
-              ? html`<span class="progress-need">🎉 Ready to claim!</span>`
-              : html`<span class="progress-need">${cost - have} more needed</span>`}
+              ? html`<span class="progress-need">${this._t('reward_progress.ready_to_claim_emoji')}</span>`
+              : html`<span class="progress-need">${this._t('reward_progress.more_needed', { amount: cost - have })}</span>`}
             <span class="progress-pct ${pctCls}">${pct}%</span>
           </div>
         </div>
@@ -476,7 +481,7 @@ class TaskMateRewardProgressCard extends LitElement {
         ${canAfford ? html`
           <div class="can-afford-badge">
             <ha-icon icon="mdi:check-circle"></ha-icon>
-            Ready to claim!
+            ${this._t('reward_progress.ready_to_claim')}
           </div>
         ` : ''}
       </div>
@@ -499,7 +504,7 @@ class TaskMateRewardProgressCard extends LitElement {
       <div class="children-section">
         <div class="child-progress-block">
           <div class="jackpot-pool">
-            <div class="jackpot-pool-title">Combined Points Pool</div>
+            <div class="jackpot-pool-title">${this._t('reward_progress.combined_points_pool')}</div>
             <div class="jackpot-contributors">
               ${children.map(child => html`
                 <div class="jackpot-contributor">
@@ -514,11 +519,11 @@ class TaskMateRewardProgressCard extends LitElement {
 
           <div class="child-progress-header" style="margin-top:4px">
             <div>
-              <div class="child-progress-name">Total Pool</div>
-              <div class="child-points-label">${totalHave} ${pointsName} combined</div>
+              <div class="child-progress-name">${this._t('reward_progress.total_pool')}</div>
+              <div class="child-points-label">${totalHave} ${pointsName} ${this._t('reward_progress.combined')}</div>
             </div>
             <div class="child-progress-cost">
-              <div class="cost-label">Goal</div>
+              <div class="cost-label">${this._t('common.goal')}</div>
               <div class="cost-value">
                 <ha-icon icon="${pointsIcon}"></ha-icon>
                 ${cost}
@@ -533,8 +538,8 @@ class TaskMateRewardProgressCard extends LitElement {
             <div class="progress-stat-row">
               <span class="progress-have">${totalHave} / ${cost} ${pointsName}</span>
               ${canAfford
-                ? html`<span class="progress-need">🎉 Ready!</span>`
-                : html`<span class="progress-need">${cost - totalHave} more needed</span>`}
+                ? html`<span class="progress-need">${this._t('reward_progress.ready')}</span>`
+                : html`<span class="progress-need">${this._t('reward_progress.more_needed', { amount: cost - totalHave })}</span>`}
               <span class="progress-pct ${pctCls}">${pct}%</span>
             </div>
           </div>
@@ -542,7 +547,7 @@ class TaskMateRewardProgressCard extends LitElement {
           ${canAfford ? html`
             <div class="can-afford-badge">
               <ha-icon icon="mdi:check-circle"></ha-icon>
-              Ready to claim!
+              ${this._t('reward_progress.ready_to_claim')}
             </div>
           ` : ''}
         </div>
@@ -554,6 +559,11 @@ class TaskMateRewardProgressCard extends LitElement {
 class TaskMateRewardProgressCardEditor extends LitElement {
   static get properties() {
     return { hass: { type: Object }, config: { type: Object } };
+  }
+
+  _t(key, params) {
+    const fn = window.__taskmate_localize;
+    return fn ? fn(this.hass, key, params) : key;
   }
 
   static get styles() {
@@ -578,43 +588,43 @@ class TaskMateRewardProgressCardEditor extends LitElement {
 
     return html`
       <ha-textfield
-        label="Overview Entity"
+        label="${this._t('common.editor.overview_entity')}"
         .value="${this.config.entity || ''}"
         @change="${e => this._update('entity', e.target.value)}"
-        helper="The TaskMate overview sensor"
+        helper="${this._t('common.editor.overview_entity_helper')}"
         helperPersistent
         placeholder="sensor.taskmate_overview"
       ></ha-textfield>
 
       <ha-textfield
-        label="Card Title"
+        label="${this._t('common.editor.card_title')}"
         .value="${this.config.title || ''}"
         @change="${e => this._update('title', e.target.value)}"
         placeholder="Reward Goal"
       ></ha-textfield>
 
       <div class="field-row">
-        <label class="field-label">Reward to display</label>
+        <label class="field-label">${this._t('reward_progress.editor.reward_to_display')}</label>
         <select class="field-select" @change="${e => this._update('reward_id', e.target.value || null)}">
-          <option value="" ?selected="${!this.config.reward_id}">First available reward</option>
+          <option value="" ?selected="${!this.config.reward_id}">${this._t('reward_progress.editor.first_available')}</option>
           ${rewards.map(r => html`<option value="${r.id}" ?selected="${this.config.reward_id === r.id}">${r.name}</option>`)}
         </select>
-        <span class="field-helper">Which reward to show progress for</span>
+        <span class="field-helper">${this._t('reward_progress.editor.reward_helper')}</span>
       </div>
 
       <div class="field-row">
-        <label class="field-label">Filter by Child (optional)</label>
+        <label class="field-label">${this._t('common.editor.filter_by_child')}</label>
         <select class="field-select" @change="${e => this._update('child_id', e.target.value || null)}">
-          <option value="" ?selected="${!this.config.child_id}">All assigned children</option>
+          <option value="" ?selected="${!this.config.child_id}">${this._t('reward_progress.editor.child_filter_all')}</option>
           ${children.map(c => html`<option value="${c.id}" ?selected="${this.config.child_id === c.id}">${c.name}</option>`)}
         </select>
-        <span class="field-helper">Show only this child's progress</span>
+        <span class="field-helper">${this._t('reward_progress.editor.child_helper')}</span>
       </div>
-        <span class="field-helper">Card header background colour</span>
+        <span class="field-helper">${this._t('common.editor.header_colour_helper')}</span>
       </div>
-    
+
       <div class="field-row">
-        <label class="field-label">Header Colour</label>
+        <label class="field-label">${this._t('common.editor.header_colour')}</label>
         <div style="display:flex;align-items:center;gap:10px;">
           <input
             type="color"
@@ -626,9 +636,9 @@ class TaskMateRewardProgressCardEditor extends LitElement {
           <button
             style="font-size:11px;color:var(--secondary-text-color);background:none;border:1px solid var(--divider-color,#e0e0e0);border-radius:4px;padding:3px 8px;cursor:pointer;"
             @click=${() => this._update('header_color', '#7d3c98')}
-          >Reset</button>
+          >${this._t('common.reset')}</button>
         </div>
-        <span class="field-helper">Card header background colour</span>
+        <span class="field-helper">${this._t('common.editor.header_colour_helper')}</span>
       </div>
     `;
   }

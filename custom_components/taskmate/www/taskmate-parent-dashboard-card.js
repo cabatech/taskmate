@@ -22,6 +22,11 @@ class TaskMateParentDashboardCard extends LitElement {
     };
   }
 
+  _t(key, params) {
+    const fn = window.__taskmate_localize;
+    return fn ? fn(this.hass, key, params) : key;
+  }
+
   constructor() {
     super();
     this._loading = {};
@@ -363,8 +368,8 @@ class TaskMateParentDashboardCard extends LitElement {
     if (!this.hass || !this.config) return html``;
 
     const entity = this.hass.states[this.config.entity];
-    if (!entity) return html`<ha-card><div class="error-state"><ha-icon icon="mdi:alert-circle"></ha-icon><div>Entity not found: ${this.config.entity}</div></div></ha-card>`;
-    if (entity.state === "unavailable" || entity.state === "unknown") return html`<ha-card><div class="error-state"><ha-icon icon="mdi:alert-circle"></ha-icon><div>TaskMate unavailable</div></div></ha-card>`;
+    if (!entity) return html`<ha-card><div class="error-state"><ha-icon icon="mdi:alert-circle"></ha-icon><div>${this._t('common.entity_not_found', { entity: this.config.entity })}</div></div></ha-card>`;
+    if (entity.state === "unavailable" || entity.state === "unknown") return html`<ha-card><div class="error-state"><ha-icon icon="mdi:alert-circle"></ha-icon><div>${this._t('common.unavailable')}</div></div></ha-card>`;
 
     const children = entity.attributes.children || [];
     const chores = entity.attributes.chores || [];
@@ -376,13 +381,13 @@ class TaskMateParentDashboardCard extends LitElement {
     const totalPending = pendingCompletions.length + pendingRewardClaims.length;
 
     const tabs = [
-      { id: "overview", label: "Overview", icon: "mdi:view-dashboard" },
-      { id: "approvals", label: "Approvals", icon: "mdi:check-circle", count: pendingCompletions.length },
-      { id: "points", label: "Points", icon: "mdi:star-plus" },
+      { id: "overview", label: this._t('dashboard.tab_overview'), icon: "mdi:view-dashboard" },
+      { id: "approvals", label: this._t('dashboard.tab_approvals'), icon: "mdi:check-circle", count: pendingCompletions.length },
+      { id: "points", label: this._t('dashboard.tab_points'), icon: "mdi:star-plus" },
     ];
 
     if (this.config.show_claims) {
-      tabs.splice(2, 0, { id: "claims", label: "Claims", icon: "mdi:gift", count: pendingRewardClaims.length });
+      tabs.splice(2, 0, { id: "claims", label: this._t('dashboard.tab_claims'), icon: "mdi:gift", count: pendingRewardClaims.length });
     }
 
     return html`
@@ -425,7 +430,7 @@ class TaskMateParentDashboardCard extends LitElement {
   }
 
   _renderOverview(children, chores, completions, pointsIcon, pointsName) {
-    if (!children.length) return html`<div class="empty-section"><ha-icon icon="mdi:account-group"></ha-icon><span>No children found</span></div>`;
+    if (!children.length) return html`<div class="empty-section"><ha-icon icon="mdi:account-group"></ha-icon><span>${this._t('dashboard.empty_no_children')}</span></div>`;
 
     const entity = this.hass?.states?.[this.config?.entity];
     const todayDow = entity?.attributes?.today_day_of_week ||
@@ -486,7 +491,7 @@ class TaskMateParentDashboardCard extends LitElement {
     if (!pending.length) return html`
       <div class="empty-section">
         <ha-icon icon="mdi:check-all" style="color: #2ecc71;"></ha-icon>
-        <span>All caught up! No pending approvals.</span>
+        <span>${this._t('dashboard.empty_approvals')}</span>
       </div>
     `;
 
@@ -508,9 +513,9 @@ class TaskMateParentDashboardCard extends LitElement {
               <ha-icon icon="${child?.avatar || 'mdi:account-circle'}"></ha-icon>
             </div>
             <div class="approval-info">
-              <div class="approval-chore">${comp.chore_name || chore?.name || 'Unknown chore'}</div>
+              <div class="approval-chore">${comp.chore_name || chore?.name || this._t('common.unknown')}</div>
               <div class="approval-meta">
-                <span>${child?.name || 'Unknown'}</span>
+                <span>${child?.name || this._t('common.unknown')}</span>
                 <span>•</span>
                 <span>${time}</span>
                 <span class="approval-points">
@@ -520,10 +525,10 @@ class TaskMateParentDashboardCard extends LitElement {
               </div>
             </div>
             <div class="approval-actions">
-              <button class="btn-approve" @click="${() => this._handleApprove(comp.completion_id)}" title="Approve">
+              <button class="btn-approve" @click="${() => this._handleApprove(comp.completion_id)}" title="${this._t('common.approve')}">
                 <ha-icon icon="mdi:check-bold"></ha-icon>
               </button>
-              <button class="btn-reject" @click="${() => this._handleReject(comp.completion_id)}" title="Reject">
+              <button class="btn-reject" @click="${() => this._handleReject(comp.completion_id)}" title="${this._t('common.reject')}">
                 <ha-icon icon="mdi:close-thick"></ha-icon>
               </button>
             </div>
@@ -537,7 +542,7 @@ class TaskMateParentDashboardCard extends LitElement {
     if (!claims.length) return html`
       <div class="empty-section">
         <ha-icon icon="mdi:gift-outline" style="color: #9b59b6;"></ha-icon>
-        <span>No pending reward claims.</span>
+        <span>${this._t('dashboard.empty_claims')}</span>
       </div>
     `;
 
@@ -561,10 +566,10 @@ class TaskMateParentDashboardCard extends LitElement {
               </div>
             </div>
             <div class="approval-actions">
-              <button class="btn-approve" @click="${() => this._handleApproveReward(claim.claim_id)}" title="Approve">
+              <button class="btn-approve" @click="${() => this._handleApproveReward(claim.claim_id)}" title="${this._t('common.approve')}">
                 <ha-icon icon="mdi:check-bold"></ha-icon>
               </button>
-              <button class="btn-reject" @click="${() => this._handleRejectReward(claim.claim_id)}" title="Reject">
+              <button class="btn-reject" @click="${() => this._handleRejectReward(claim.claim_id)}" title="${this._t('common.reject')}">
                 <ha-icon icon="mdi:close-thick"></ha-icon>
               </button>
             </div>
@@ -589,10 +594,10 @@ class TaskMateParentDashboardCard extends LitElement {
             ${child.points}
           </span>
           <div class="qp-actions">
-            <button class="btn-remove" @click="${() => this._handlePoints(child.id, -amount)}" title="Remove ${amount} ${pointsName}">
+            <button class="btn-remove" @click="${() => this._handlePoints(child.id, -amount)}" title="${this._t('dashboard.btn_remove_points_title', { amount, pointsName })}">
               <ha-icon icon="mdi:minus"></ha-icon>
             </button>
-            <button class="btn-add" @click="${() => this._handlePoints(child.id, amount)}" title="Add ${amount} ${pointsName}">
+            <button class="btn-add" @click="${() => this._handlePoints(child.id, amount)}" title="${this._t('dashboard.btn_add_points_title', { amount, pointsName })}">
               <ha-icon icon="mdi:plus"></ha-icon>
             </button>
           </div>
@@ -696,43 +701,43 @@ class TaskMateParentDashboardCardEditor extends LitElement {
     if (!this.hass || !this.config) return html``;
     return html`
       <ha-textfield
-        label="Overview Entity"
+        label="${this._t('dashboard.editor.entity_label')}"
         .value="${this.config.entity || ''}"
         @change="${e => this._update('entity', e.target.value)}"
-        helper="The TaskMate overview sensor"
+        helper="${this._t('dashboard.editor.entity_helper')}"
         helperPersistent
         placeholder="sensor.taskmate_overview"
       ></ha-textfield>
 
       <ha-textfield
-        label="Card Title"
+        label="${this._t('dashboard.editor.title_label')}"
         .value="${this.config.title || ''}"
         @change="${e => this._update('title', e.target.value)}"
         placeholder="Parent Dashboard"
       ></ha-textfield>
 
       <ha-textfield
-        label="Quick Points Amount"
+        label="${this._t('dashboard.editor.quick_points_label')}"
         type="number"
         .value="${String(this.config.quick_points_amount || 5)}"
         @change="${e => this._update('quick_points_amount', parseInt(e.target.value) || 5)}"
-        helper="How many points the +/- buttons add or remove"
+        helper="${this._t('dashboard.editor.quick_points_helper')}"
         helperPersistent
       ></ha-textfield>
 
       <label class="check-row">
         <input type="checkbox"
           ?checked="${this.config.show_claims !== false}"
-          
+
           @change="${e => this._update('show_claims', e.target.checked)}"
         />
-        <span class="check-label">Show Reward Claims tab</span>
+        <span class="check-label">${this._t('dashboard.editor.show_claims')}</span>
       </label>
-        <span class="field-helper">Card header background colour</span>
+        <span class="field-helper">${this._t('dashboard.editor.header_colour_helper')}</span>
       </div>
-    
+
       <div class="field-row">
-        <label class="field-label">Header Colour</label>
+        <label class="field-label">${this._t('dashboard.editor.header_colour_label')}</label>
         <div style="display:flex;align-items:center;gap:10px;">
           <input
             type="color"
@@ -744,11 +749,16 @@ class TaskMateParentDashboardCardEditor extends LitElement {
           <button
             style="font-size:11px;color:var(--secondary-text-color);background:none;border:1px solid var(--divider-color,#e0e0e0);border-radius:4px;padding:3px 8px;cursor:pointer;"
             @click=${() => this._update('header_color', '#c0392b')}
-          >Reset</button>
+          >${this._t('common.reset')}</button>
         </div>
-        <span class="field-helper">Card header background colour</span>
+        <span class="field-helper">${this._t('dashboard.editor.header_colour_helper')}</span>
       </div>
     `;
+  }
+
+  _t(key, params) {
+    const fn = window.__taskmate_localize;
+    return fn ? fn(this.hass, key, params) : key;
   }
 
   _update(key, value) {

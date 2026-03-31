@@ -22,6 +22,11 @@ class TaskMatePointsCard extends LitElement {
     };
   }
 
+  _t(key, params) {
+    const fn = window.__taskmate_localize;
+    return fn ? fn(this.hass, key, params) : key;
+  }
+
   constructor() {
     super();
     this._loading = {};
@@ -613,7 +618,7 @@ class TaskMatePointsCard extends LitElement {
         <ha-card>
           <div class="error-state">
             <ha-icon icon="mdi:alert-circle"></ha-icon>
-            <div>Entity not found: ${this.config.entity}</div>
+            <div>${this._t('common.entity_not_found', { entity: this.config.entity })}</div>
           </div>
         </ha-card>
       `;
@@ -624,7 +629,7 @@ class TaskMatePointsCard extends LitElement {
         <ha-card>
           <div class="error-state">
             <ha-icon icon="mdi:alert-circle"></ha-icon>
-            <div>TaskMate is unavailable</div>
+            <div>${this._t('common.unavailable')}</div>
           </div>
         </ha-card>
       `;
@@ -662,8 +667,8 @@ class TaskMatePointsCard extends LitElement {
     return html`
       <div class="empty-state">
         <ha-icon icon="mdi:account-group"></ha-icon>
-        <div class="message">No Children Found</div>
-        <div class="submessage">Add children in TaskMate settings</div>
+        <div class="message">${this._t('points_card.empty_title')}</div>
+        <div class="submessage">${this._t('points_card.empty_subtitle')}</div>
       </div>
     `;
   }
@@ -699,30 +704,30 @@ class TaskMatePointsCard extends LitElement {
             const removeAmounts = Array.isArray(this.config.quick_remove_amounts)
               ? this.config.quick_remove_amounts : [1, 5, 10];
             return html`
-              <div class="quick-row-label">+ ${pointsName}</div>
+              <div class="quick-row-label">${this._t('points_card.quick_label_add', { pointsName })}</div>
               <div class="quick-buttons-row">
                 ${addAmounts.map(amt => html`
                   <button class="quick-btn add" ?disabled="${isLoading}"
                     @click="${(e) => { e.stopPropagation(); this._quickAdjust(child, 'add', amt); }}"
-                    title="Add ${amt} ${pointsName}">+${amt}</button>
+                    title="${this._t('points_card.quick_add_title', { amount: amt, pointsName })}">+${amt}</button>
                 `)}
                 ${this.config.show_dialog !== false ? html`
                   <button class="quick-btn custom" ?disabled="${isLoading}"
                     @click="${() => this._openDialog(child, 'add', pointsIcon, pointsName)}"
-                    title="Custom amount">⋯</button>
+                    title="${this._t('points_card.quick_custom_title')}">⋯</button>
                 ` : ''}
               </div>
-              <div class="quick-row-label">− ${pointsName}</div>
+              <div class="quick-row-label">${this._t('points_card.quick_label_remove', { pointsName })}</div>
               <div class="quick-buttons-row">
                 ${removeAmounts.map(amt => html`
                   <button class="quick-btn remove" ?disabled="${isLoading}"
                     @click="${(e) => { e.stopPropagation(); this._quickAdjust(child, 'remove', amt); }}"
-                    title="Remove ${amt} ${pointsName}">−${amt}</button>
+                    title="${this._t('points_card.quick_remove_title', { amount: amt, pointsName })}">−${amt}</button>
                 `)}
                 ${this.config.show_dialog !== false ? html`
                   <button class="quick-btn custom" ?disabled="${isLoading}"
                     @click="${() => this._openDialog(child, 'remove', pointsIcon, pointsName)}"
-                    title="Custom amount">⋯</button>
+                    title="${this._t('points_card.quick_custom_title')}">⋯</button>
                 ` : ''}
               </div>
             `;
@@ -746,9 +751,9 @@ class TaskMatePointsCard extends LitElement {
             </div>
             <div class="dialog-header-text">
               <div class="dialog-title">
-                ${isAdd ? "Add" : "Remove"} ${pointsName}
+                ${isAdd ? this._t('points_card.dialog_add_title', { pointsName }) : this._t('points_card.dialog_remove_title', { pointsName })}
               </div>
-              <div class="dialog-subtitle">for ${child.name}</div>
+              <div class="dialog-subtitle">${this._t('points_card.dialog_subtitle', { childName: child.name })}</div>
             </div>
           </div>
 
@@ -756,13 +761,13 @@ class TaskMatePointsCard extends LitElement {
             <div class="form-group">
               <ha-textfield
                 id="points-input"
-                label="Number of ${pointsName}"
+                label="${this._t('points_card.dialog_points_label', { pointsName })}"
                 type="number"
                 min="1"
                 max="100"
                 value="1"
                 style="width:100%;"
-                helper="Enter 1–100"
+                helper="${this._t('points_card.dialog_points_helper')}"
                 helperPersistent
                 @keydown="${(e) => this._handleKeyDown(e, child, action)}"
               ></ha-textfield>
@@ -771,8 +776,8 @@ class TaskMatePointsCard extends LitElement {
             <div class="form-group">
               <ha-textfield
                 id="reason-input"
-                label="Reason (optional)"
-                placeholder="e.g., Great behavior, Helped a sibling..."
+                label="${this._t('points_card.dialog_reason_label')}"
+                placeholder="${this._t('points_card.dialog_reason_placeholder')}"
                 maxlength="200"
                 style="width:100%;"
                 @keydown="${(e) => this._handleKeyDown(e, child, action)}"
@@ -785,14 +790,14 @@ class TaskMatePointsCard extends LitElement {
                 @click="${this._closeDialog}"
                 ?disabled="${isLoading}"
               >
-                Cancel
+                ${this._t('common.cancel')}
               </button>
               <button
                 class="dialog-button confirm ${action} ${isLoading ? "loading" : ""}"
                 @click="${() => this._confirmAction(child, action)}"
                 ?disabled="${isLoading}"
               >
-                ${isLoading ? "..." : isAdd ? "Add" : "Remove"}
+                ${isLoading ? this._t('points_card.dialog_loading') : isAdd ? this._t('points_card.dialog_confirm_add') : this._t('points_card.dialog_confirm_remove')}
               </button>
             </div>
           </div>
@@ -831,9 +836,9 @@ class TaskMatePointsCard extends LitElement {
         points: amount,
       });
       const sign = action === 'add' ? '+' : '−';
-      this._showNotification(`${sign}${amount} ${pointsName} for ${child.name}`, 'success');
+      this._showNotification(this._t('points_card.notification_quick', { sign, amount, pointsName, childName: child.name }), 'success');
     } catch (error) {
-      this._showNotification(`Failed: ${error.message}`, 'error');
+      this._showNotification(this._t('points_card.notification_failed', { message: error.message }), 'error');
     } finally {
       this._loading = { ...this._loading, [key]: false };
       this.requestUpdate();
@@ -877,7 +882,7 @@ class TaskMatePointsCard extends LitElement {
 
     // Validate points
     if (points < 1 || points > 100) {
-      this._showNotification("Please enter a number between 1 and 100", "error");
+      this._showNotification(this._t('points_card.validation_range'), "error");
       return;
     }
 
@@ -904,15 +909,15 @@ class TaskMatePointsCard extends LitElement {
 
       const message =
         action === "add"
-          ? `Added ${points} ${pointsLabel} to ${child.name}`
-          : `Removed ${points} ${pointsLabel} from ${child.name}`;
+          ? this._t('points_card.notification_added', { points, pointsLabel, childName: child.name })
+          : this._t('points_card.notification_removed', { points, pointsLabel, childName: child.name });
 
       this._showNotification(message, "success");
       this._closeDialog();
     } catch (error) {
       console.error(`Failed to ${action} points:`, error);
       this._showNotification(
-        `Failed to ${action} points: ${error.message}`,
+        this._t('points_card.notification_failed_action', { action, message: error.message }),
         "error"
       );
     } finally {
@@ -976,16 +981,16 @@ class TaskMatePointsCardEditor extends LitElement {
 
     return html`
       <ha-textfield
-        label="Entity"
+        label="${this._t('points_card.editor.entity_label')}"
         .value="${this.config.entity || ''}"
         @change="${e => this._updateConfig('entity', e.target.value)}"
-        helper="The TaskMate overview sensor entity"
+        helper="${this._t('points_card.editor.entity_helper')}"
         helperPersistent
         placeholder="sensor.taskmate_overview"
       ></ha-textfield>
 
       <ha-textfield
-        label="Title"
+        label="${this._t('points_card.editor.title_label')}"
         .value="${this.config.title || ''}"
         @change="${e => this._updateConfig('title', e.target.value)}"
         placeholder="Manage Points"
@@ -994,11 +999,11 @@ class TaskMatePointsCardEditor extends LitElement {
       <div class="section-divider"></div>
 
       <div class="field-row">
-        <label class="field-label">Add Points Buttons</label>
+        <label class="field-label">${this._t('points_card.editor.add_buttons_label')}</label>
         <ha-textfield
           .value="${this._amountsToString(addAmounts)}"
           @change="${e => this._updateConfig('quick_add_amounts', this._parseAmounts(e.target.value, [1,5,10]))}"
-          helper="Comma-separated amounts e.g. 1, 2, 5, 10, 25"
+          helper="${this._t('points_card.editor.add_buttons_helper')}"
           helperPersistent
           placeholder="1, 5, 10"
           style="width:100%;"
@@ -1009,11 +1014,11 @@ class TaskMatePointsCardEditor extends LitElement {
       </div>
 
       <div class="field-row">
-        <label class="field-label">Remove Points Buttons</label>
+        <label class="field-label">${this._t('points_card.editor.remove_buttons_label')}</label>
         <ha-textfield
           .value="${this._amountsToString(removeAmounts)}"
           @change="${e => this._updateConfig('quick_remove_amounts', this._parseAmounts(e.target.value, [1,5,10]))}"
-          helper="Comma-separated amounts e.g. 1, 2, 5, 10, 25"
+          helper="${this._t('points_card.editor.remove_buttons_helper')}"
           helperPersistent
           placeholder="1, 5, 10"
           style="width:100%;"
@@ -1028,13 +1033,13 @@ class TaskMatePointsCardEditor extends LitElement {
           ?checked="${this.config.show_dialog !== false}"
           @change="${e => this._updateConfig('show_dialog', e.target.checked)}"
         />
-        <span class="check-label">Show ⋯ button for custom amount with reason</span>
+        <span class="check-label">${this._t('points_card.editor.show_dialog_label')}</span>
       </label>
 
       <div class="section-divider"></div>
 
       <div class="field-row">
-        <label class="field-label">Header Colour</label>
+        <label class="field-label">${this._t('points_card.editor.header_colour_label')}</label>
         <div style="display:flex;align-items:center;gap:10px;">
           <input
             type="color"
@@ -1046,11 +1051,16 @@ class TaskMatePointsCardEditor extends LitElement {
           <button
             style="font-size:11px;color:var(--secondary-text-color);background:none;border:1px solid var(--divider-color,#e0e0e0);border-radius:4px;padding:3px 8px;cursor:pointer;"
             @click=${() => this._updateConfig('header_color', '#2980b9')}
-          >Reset</button>
+          >${this._t('common.reset')}</button>
         </div>
-        <span class="field-helper">Card header background colour</span>
+        <span class="field-helper">${this._t('points_card.editor.header_colour_helper')}</span>
       </div>
     `;
+  }
+
+  _t(key, params) {
+    const fn = window.__taskmate_localize;
+    return fn ? fn(this.hass, key, params) : key;
   }
 
   _updateConfig(key, value) {
