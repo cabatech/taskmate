@@ -3,24 +3,27 @@
  * Lightweight translation loader for TaskMate custom cards.
  *
  * Usage in a card:
- *   import { localize } from '/local/community/taskmate/taskmate-localize.js';
- *   // or, since cards are served from /taskmate/:
- *   // loaded via window.__taskmate_localize
+ *   // loaded via window.__taskmate_localize (registered globally)
  *
  *   localize(this.hass, 'common.today')           → "Today"
  *   localize(this.hass, 'common.points_received',
  *     { count: 5, name: 'Stars' })                → "5 Stars received"
+ *
+ * Language resolution: nb → nb.json → en-GB.json → key
+ * The base (fallback) language is en-GB since that is the source locale.
  */
 
-const _cache = {};          // lang → { key: value }
+const _cache = {};          // lang → { key: value }  (null = tried and failed)
 const _pending = {};        // lang → Promise
 const _BASE = '/taskmate/locales';
+const _FALLBACK = 'en-GB';  // base language file
 
 /**
  * Load a locale file by language code. Returns cached result if available.
+ * Caches failures (as null) so we don't retry on every render.
  */
 async function _loadLocale(lang) {
-  if (_cache[lang]) return _cache[lang];
+  if (lang in _cache) return _cache[lang];
   if (_pending[lang]) return _pending[lang];
 
   _pending[lang] = (async () => {
@@ -31,19 +34,29 @@ async function _loadLocale(lang) {
       _cache[lang] = data;
       return data;
     } catch {
-      // If non-English locale fails, don't cache — try again next time
-      if (lang !== 'en') {
-        delete _pending[lang];
-        return null;
-      }
-      _cache['en'] = {};
-      return {};
+      // Cache the failure so we don't retry on every render cycle
+      _cache[lang] = null;
+      return null;
     } finally {
       delete _pending[lang];
     }
   })();
 
   return _pending[lang];
+}
+
+/**
+ * Resolve language to a list of codes to try (most specific first).
+ * e.g. "en-GB" → ["en-GB"]
+ *      "nb"    → ["nb"]
+ *      "pt-BR" → ["pt-BR", "pt"]
+ */
+function _langCandidates(lang) {
+  const candidates = [lang];
+  if (lang.includes('-')) {
+    candidates.push(lang.split('-')[0]);
+  }
+  return candidates;
 }
 
 /**
@@ -56,16 +69,29 @@ async function _loadLocale(lang) {
  * @returns {string}
  */
 function localize(hass, key, params) {
-  const lang = (hass && hass.language) || 'en';
+  const lang = (hass && hass.language) || _FALLBACK;
+  const candidates = _langCandidates(lang);
 
-  // Try current language first, fall back to English
-  let str = (_cache[lang] && _cache[lang][key]) ||
-            (_cache['en'] && _cache['en'][key]) ||
-            key;
+  // Try each candidate language, then fall back to base language
+  let str = undefined;
+  for (const candidate of candidates) {
+    if (_cache[candidate] && _cache[candidate][key]) {
+      str = _cache[candidate][key];
+      break;
+    }
+  }
+  if (str === undefined && _cache[_FALLBACK]) {
+    str = _cache[_FALLBACK][key];
+  }
+  if (str === undefined) {
+    str = key;
+  }
 
-  // Trigger background load if not cached
-  if (!_cache[lang]) _loadLocale(lang);
-  if (!_cache['en']) _loadLocale('en');
+  // Trigger background loads for any language not yet in cache
+  for (const candidate of candidates) {
+    if (!(candidate in _cache)) _loadLocale(candidate);
+  }
+  if (!(_FALLBACK in _cache)) _loadLocale(_FALLBACK);
 
   // Replace {placeholder} tokens
   if (params && typeof str === 'string') {
@@ -85,10 +111,11 @@ function localize(hass, key, params) {
  * @returns {Promise<void>}
  */
 async function loadTranslations(hass) {
-  const lang = (hass && hass.language) || 'en';
+  const lang = (hass && hass.language) || _FALLBACK;
+  const candidates = _langCandidates(lang);
   await Promise.all([
-    _loadLocale('en'),
-    lang !== 'en' ? _loadLocale(lang) : Promise.resolve(),
+    _loadLocale(_FALLBACK),
+    ...candidates.filter(c => c !== _FALLBACK).map(c => _loadLocale(c)),
   ]);
 }
 
